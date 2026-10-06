@@ -1,0 +1,13 @@
+<h1>My Subjects</h1>
+
+<div class="subjects">
+  @for (subject of subjects; track subject.name) {
+  <div class="subject-card">
+    <h2>{{ subject.name }}</h2>
+
+    <p>Progress: {{ subject.progress }}%</p>
+
+    <button (click)="startRevision(subject)">Start Revision</button>
+  </div>
+}
+</div>

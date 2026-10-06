@@ -1,0 +1,13 @@
+.subjects {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  padding: 20px;
+}
+
+.subject-card {
+  width: 220px;
+  padding: 20px;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+}

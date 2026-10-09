@@ -1,7 +1,64 @@
-<h1>Revision: {{ subjectName }}</h1>
 
-<p>Let's start revising {{ subjectName }}!</p>
+<div class="revision-container">
 
-<button (click)="startQuickRevision()">
+  <h1>Revision: {{ subjectName }}</h1>
+
+  <p class="subtitle">
+    Choose how you want to revise this subject.
+  </p>
+
+  <div class="revision-options">
+
+    <div class="revision-card"
+         [class.selected]="selectedOption === 'Revision Notes'"
+         (click)="selectOption('Revision Notes')">
+      <h2>Revision Notes</h2>
+      <p>Review important concepts and key points.</p>
+    </div>
+
+    <div class="revision-card"
+         [class.selected]="selectedOption === 'Mind Maps'"
+         (click)="selectOption('Mind Maps')">
+      <h2>Mind Maps</h2>
+      <p>Understand how different topics connect.</p>
+    </div>
+
+    <div class="revision-card"
+         [class.selected]="selectedOption === 'Flashcards'"
+         (click)="selectOption('Flashcards')">
+      <h2>Flashcards</h2>
+      <p>Practise remembering important concepts.</p>
+    </div>
+
+    <div class="revision-card"
+         [class.selected]="selectedOption === 'Quiz'"
+         (click)="selectOption('Quiz')">
+      <h2>Quiz</h2>
+      <p>Test your understanding of the subject.</p>
+    </div>
+
+  </div>
+
+  <p>Selected option: {{ selectedOption || 'None' }}</p>
+
+  <button
+  (click)="startQuickRevision()"
+  [disabled]="!selectedOption">
   Start Quick Revision
 </button>
+@if (showRevisionContent) {
+  <div class="revision-content">
+    <h2>{{ selectedOption }} — {{ subjectName }}</h2>
+
+    @if (revisionContent[subjectName]; as points) {
+      <ul>
+        @for (point of points; track point) {
+          <li>{{ point }}</li>
+        }
+      </ul>
+    } @else {
+      <p>Revision content for this subject is coming soon.</p>
+    }
+  </div>
+}
+</div>

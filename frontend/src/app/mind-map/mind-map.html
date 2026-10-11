@@ -1,2 +1,46 @@
-<h1>Mind Maps</h1>
-<p>Your interactive mind maps will appear here.</p>
+
+<div class="mind-map-container">
+
+  <h1>{{ subjectName }} Mind Map</h1>
+
+  <p class="subtitle">
+    Explore the main concepts and their connections.
+  </p>
+
+  @if (currentMindMap; as mindMap) {
+
+    <div class="mind-map">
+
+      <div class="central-topic">
+        {{ mindMap.centralTopic }}
+      </div>
+
+      <div class="mind-map-branches">
+
+        @for (topic of mindMap.topics; track topic.title) {
+          <div class="mind-map-branch">
+
+            <div class="topic-node">
+              {{ topic.title }}
+            </div>
+
+            <div class="subtopic-list">
+              @for (subtopic of topic.subtopics; track subtopic) {
+                <div class="subtopic-node">
+                  {{ subtopic }}
+                </div>
+              }
+            </div>
+
+          </div>
+        }
+
+      </div>
+
+    </div>
+
+  } @else {
+    <p>No mind map is available for {{ subjectName }} yet.</p>
+  }
+
+</div>

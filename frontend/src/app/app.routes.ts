@@ -28,10 +28,12 @@ export const routes: Routes = [
     path: 'flashcards',
     component: Flashcards
   },
-  {
-    path: 'quiz',
-    component: Quiz
-  },
+  
+{
+  path: 'quiz/:subject',
+  component: Quiz
+}
+,
   {
     path: 'revision/:subject', 
     component: Revision 

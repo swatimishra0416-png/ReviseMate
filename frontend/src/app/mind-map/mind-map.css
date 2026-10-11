@@ -1,0 +1,91 @@
+
+.mind-map-container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 32px;
+}
+
+.mind-map-container h1 {
+  font-size: 28px;
+  margin-bottom: 10px;
+}
+
+.subtitle {
+  color: #666;
+  margin-bottom: 32px;
+}
+
+.mind-map {
+  padding: 28px;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  background: #fafaff;
+  overflow-x: auto;
+}
+
+.central-topic {
+  width: fit-content;
+  max-width: 100%;
+  margin: 0 auto 32px;
+  padding: 18px 28px;
+  border-radius: 14px;
+  background: #4f46e5;
+  color: white;
+  font-size: 20px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.mind-map-branches {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+}
+
+.mind-map-branch {
+  position: relative;
+  padding: 20px;
+  border: 1px solid #c7d2fe;
+  border-radius: 12px;
+  background: white;
+}
+
+.topic-node {
+  margin-bottom: 16px;
+  padding: 12px;
+  border-radius: 8px;
+  background: #eef2ff;
+  color: #3730a3;
+  font-weight: 700;
+  text-align: center;
+}
+
+.subtopic-list {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+
+.subtopic-node {
+  padding: 9px 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #f9fafb;
+  color: #333;
+  text-align: center;
+}
+
+@media (max-width: 650px) {
+  .mind-map-container {
+    padding: 16px;
+  }
+
+  .mind-map {
+    padding: 16px;
+  }
+
+  .mind-map-branches {
+    grid-template-columns: 1fr;
+  }
+}

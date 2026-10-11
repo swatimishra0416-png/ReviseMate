@@ -9,30 +9,38 @@
 
   <div class="revision-options">
 
-    <div class="revision-card"
-         [class.selected]="selectedOption === 'Revision Notes'"
-         (click)="selectOption('Revision Notes')">
+    <div
+      class="revision-card"
+      [class.selected]="selectedOption === 'Revision Notes'"
+      (click)="selectOption('Revision Notes')">
+
       <h2>Revision Notes</h2>
       <p>Review important concepts and key points.</p>
     </div>
 
-    <div class="revision-card"
-         [class.selected]="selectedOption === 'Mind Maps'"
-         (click)="selectOption('Mind Maps')">
+    <div
+      class="revision-card"
+      [class.selected]="selectedOption === 'Mind Maps'"
+      (click)="selectOption('Mind Maps')">
+
       <h2>Mind Maps</h2>
       <p>Understand how different topics connect.</p>
     </div>
 
-    <div class="revision-card"
-         [class.selected]="selectedOption === 'Flashcards'"
-         (click)="selectOption('Flashcards')">
+    <div
+      class="revision-card"
+      [class.selected]="selectedOption === 'Flashcards'"
+      (click)="selectOption('Flashcards')">
+
       <h2>Flashcards</h2>
       <p>Practise remembering important concepts.</p>
     </div>
 
-    <div class="revision-card"
-         [class.selected]="selectedOption === 'Quiz'"
-         (click)="selectOption('Quiz')">
+    <div
+      class="revision-card"
+      [class.selected]="selectedOption === 'Quiz'"
+      (click)="selectOption('Quiz')">
+
       <h2>Quiz</h2>
       <p>Test your understanding of the subject.</p>
     </div>
@@ -41,24 +49,122 @@
 
   <p>Selected option: {{ selectedOption || 'None' }}</p>
 
-  <button
+  
+
+<button
   (click)="startQuickRevision()"
   [disabled]="!selectedOption">
-  Start Quick Revision
-</button>
-@if (showRevisionContent) {
-  <div class="revision-content">
-    <h2>{{ selectedOption }} — {{ subjectName }}</h2>
 
-    @if (revisionContent[subjectName]; as points) {
-      <ul>
-        @for (point of points; track point) {
-          <li>{{ point }}</li>
+  @if (selectedOption === 'Revision Notes') {
+    Open Revision Notes
+  } @else if (selectedOption === 'Flashcards') {
+    Start Flashcards
+  } @else if (selectedOption === 'Mind Maps') {
+    Open Mind Maps
+  } @else if (selectedOption === 'Quiz') {
+    Start Quiz
+  } @else {
+    Choose a Revision Method
+  }
+
+</button>
+
+
+
+  @if (showRevisionContent) {
+    <div class="revision-content">
+
+      <h2>{{ selectedOption }} — {{ subjectName }}</h2>
+
+      @if (selectedOption === 'Flashcards') {
+
+        @if (currentFlashcard; as card) {
+          <div class="flashcard-section">
+
+            <p>
+              Flashcard {{ currentFlashcardIndex + 1 }}
+              of {{ currentFlashcards.length }}
+            </p>
+
+            <div class="flashcard">
+
+              @if (showFlashcardAnswer) {
+                <h3>Answer</h3>
+                <p>{{ card.answer }}</p>
+              } @else {
+                <h3>Question</h3>
+                <p>{{ card.question }}</p>
+              }
+
+              <button (click)="flipFlashcard()">
+                {{ showFlashcardAnswer ? 'Show Question' : 'Reveal Answer' }}
+              </button>
+
+            </div>
+
+            <div class="flashcard-navigation">
+
+              <button
+                (click)="previousFlashcard()"
+                [disabled]="currentFlashcardIndex === 0">
+                Previous
+              </button>
+
+              <button
+                (click)="nextFlashcard()"
+                [disabled]="currentFlashcardIndex >= currentFlashcards.length - 1">
+                Next
+              </button>
+
+            </div>
+          </div>
+        } @else {
+          <p>No flashcards are available for {{ subjectName }} yet.</p>
         }
-      </ul>
-    } @else {
-      <p>Revision content for this subject is coming soon.</p>
-    }
-  </div>
-}
+
+      } @else if (selectedOption === 'Revision Notes') {
+
+        @if (revisionContent[subjectName]; as points) {
+
+          <p>Revision progress: {{ progressPercentage }}%</p>
+
+          <div class="progress-bar">
+            <div
+              class="progress-fill"
+              [style.width.%]="progressPercentage">
+            </div>
+          </div>
+
+          <ul>
+            @for (point of points; track point) {
+              <li>
+                <label>
+                  <input
+                    type="checkbox"
+                    [checked]="completedTopics.includes(point)"
+                    (change)="toggleTopic(point)">
+
+                  <span [class.completed]="completedTopics.includes(point)">
+                    {{ point }}
+                  </span>
+                </label>
+              </li>
+            }
+          </ul>
+
+          <button (click)="resetProgress()">
+            Reset Progress
+          </button>
+
+        } @else {
+          <p>Revision content for this subject is coming soon.</p>
+        }
+
+      } @else {
+        <p>This revision method is coming soon.</p>
+      }
+
+    </div>
+  }
+
 </div>

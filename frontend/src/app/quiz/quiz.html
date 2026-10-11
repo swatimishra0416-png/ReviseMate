@@ -1,2 +1,88 @@
-<h1>Quiz</h1>
-<p>Your revision quiz will appear here.</p>
+
+<div class="quiz-container">
+
+  <h1>{{ subjectName }} Quiz</h1>
+
+  @if (!quizFinished) {
+    <div class="quiz-card">
+
+      <p class="question-count">
+        Question {{ currentQuestionIndex + 1 }} of {{ questions.length }}
+      </p>
+
+      <h2>{{ questions[currentQuestionIndex].question }}</h2>
+
+      <div class="quiz-options">
+        @for (option of questions[currentQuestionIndex].options; track option) {
+          <button
+            class="quiz-option"
+            [class.selected]="selectedAnswer === option"
+            [class.correct]="answerSubmitted && option === questions[currentQuestionIndex].correctAnswer"
+            [class.incorrect]="answerSubmitted && selectedAnswer === option && option !== questions[currentQuestionIndex].correctAnswer"
+            [disabled]="answerSubmitted"
+            (click)="selectAnswer(option)">
+
+            {{ option }}
+
+          </button>
+        }
+      </div>
+
+      @if (answerSubmitted) {
+        <div class="answer-feedback">
+          @if (selectedAnswer === questions[currentQuestionIndex].correctAnswer) {
+            <h3>Correct! 🎉</h3>
+          } @else {
+            <h3>Not quite!</h3>
+            <p>
+              Correct answer:
+              <strong>{{ questions[currentQuestionIndex].correctAnswer }}</strong>
+            </p>
+          }
+
+          <p>{{ questions[currentQuestionIndex].explanation }}</p>
+        </div>
+      }
+
+      @if (!answerSubmitted) {
+        <button
+          class="next-button"
+          (click)="submitAnswer()"
+          [disabled]="!selectedAnswer">
+          Submit Answer
+        </button>
+      } @else {
+        <button
+          class="next-button"
+          (click)="nextQuestion()">
+
+          {{ currentQuestionIndex === questions.length - 1
+            ? 'View Results'
+            : 'Next Question' }}
+
+        </button>
+      }
+
+    </div>
+  } @else {
+    <div class="quiz-result">
+
+      <h2>Quiz Completed!</h2>
+
+      <p class="score">
+        Your Score: {{ score }} / {{ questions.length }}
+      </p>
+
+      <p>
+        You answered {{ score }} out of {{ questions.length }}
+        questions correctly.
+      </p>
+
+      <button class="next-button" (click)="restartQuiz()">
+        Try Again
+      </button>
+
+    </div>
+  }
+
+</div>

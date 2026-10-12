@@ -15,6 +15,36 @@
   margin-bottom: 32px;
 }
 
+.mind-map-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.mind-map-controls button {
+  padding: 10px 18px;
+  border: 1px solid #4f46e5;
+  border-radius: 8px;
+  background: #4f46e5;
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.mind-map-controls button:hover {
+  background: #3730a3;
+  transform: translateY(-1px);
+}
+
+.mind-map-controls button:focus-visible {
+  outline: 3px solid #a5b4fc;
+  outline-offset: 3px;
+}
+
+
 .mind-map {
   padding: 28px;
   border: 1px solid #e5e7eb;
@@ -50,15 +80,36 @@
   background: white;
 }
 
+
 .topic-node {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
   margin-bottom: 16px;
-  padding: 12px;
+  padding: 12px 16px;
+  border: 1px solid #c7d2fe;
   border-radius: 8px;
   background: #eef2ff;
   color: #3730a3;
+  font: inherit;
   font-weight: 700;
-  text-align: center;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
 }
+
+.topic-node:hover {
+  background: #e0e7ff;
+  border-color: #818cf8;
+}
+
+.topic-node:focus-visible {
+  outline: 3px solid #a5b4fc;
+  outline-offset: 3px;
+}
+
 
 .subtopic-list {
   display: flex;

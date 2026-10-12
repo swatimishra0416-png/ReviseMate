@@ -127,6 +127,7 @@ export class Revision {
   }
 
   
+
 startQuickRevision() {
   if (!this.selectedOption) {
     return;
@@ -134,6 +135,13 @@ startQuickRevision() {
 
   if (this.selectedOption === 'Quiz') {
     this.router.navigate(['/quiz', this.subjectName]);
+    return;
+  }
+
+  if (this.selectedOption === 'Mind Maps') {
+    this.router.navigate(['/mind-map'], {
+      queryParams: { subject: this.subjectName }
+    });
     return;
   }
 
@@ -151,6 +159,7 @@ startQuickRevision() {
     this.subjectName
   );
 }
+
 
 
   get currentFlashcards(): Flashcard[] {

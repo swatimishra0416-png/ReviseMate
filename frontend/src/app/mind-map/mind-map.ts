@@ -20,6 +20,26 @@ interface SubjectMindMap {
 })
 export class MindMap {
   subjectName = '';
+  
+expandedTopics: string[] = [];
+
+toggleTopic(topicTitle: string) {
+  if (this.expandedTopics.includes(topicTitle)) {
+    this.expandedTopics = this.expandedTopics.filter(
+      topic => topic !== topicTitle
+    );
+  } else {
+    this.expandedTopics = [...this.expandedTopics, topicTitle];
+  }
+}
+expandAll() {
+  const topics = this.currentMindMap?.topics || [];
+  this.expandedTopics = topics.map(topic => topic.title);
+}
+
+collapseAll() {
+  this.expandedTopics = [];
+}
 
   mindMapsBySubject: { [subject: string]: SubjectMindMap } = {
     'Computer Networks': {
@@ -111,10 +131,12 @@ export class MindMap {
     }
   };
 
-  constructor(private route: ActivatedRoute) {
-    this.subjectName =
-      this.route.snapshot.paramMap.get('subject') || 'Computer Networks';
-  }
+ 
+constructor(private route: ActivatedRoute) {
+  this.subjectName =
+    this.route.snapshot.queryParamMap.get('subject') || 'Computer Networks';
+}
+
 
   get currentMindMap(): SubjectMindMap | undefined {
     return this.mindMapsBySubject[this.subjectName];

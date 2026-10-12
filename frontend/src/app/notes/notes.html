@@ -1,2 +1,110 @@
-<h1>My Notes</h1>
-<p>Your revision notes will appear here.</p>
+
+<div class="notes-container">
+    
+  <h1>My Notes</h1>
+  <p>Upload or paste your study material to start revising.</p>
+
+  <!-- Material Title -->
+  <div class="form-group">
+    <label for="title">Material Title</label>
+    <input
+      id="title"
+      type="text"
+      placeholder="e.g. TCP and UDP Notes"
+      [(ngModel)]="materialTitle"
+    />
+  </div>
+
+  <!-- Subject Selection -->
+  <div class="form-group">
+    <label for="subject">Select Subject</label>
+    <select id="subject" [(ngModel)]="selectedSubject">
+      @for (subject of subjects; track subject) {
+        <option [value]="subject">{{ subject }}</option>
+      }
+    </select>
+  </div>
+
+  <!-- File Upload -->
+  <div class="form-group">
+    <label for="studyFile">Upload a Text File (.txt)</label>
+    <input
+      id="studyFile"
+      type="file"
+      accept=".txt,text/plain"
+      (change)="onFileSelected($event)"
+    />
+
+    <p class="uploaded-file">
+  Uploaded filename: {{ selectedFileName || 'No file loaded yet' }}
+</p>
+  </div>
+
+  <!-- Study Material Text -->
+  <div class="form-group">
+    <label for="material">Paste Study Material</label>
+    <textarea
+      id="material"
+      rows="10"
+      placeholder="Paste your notes, textbook content, or study material here..."
+      [(ngModel)]="studyMaterial"
+    ></textarea>
+  </div>
+
+  <!-- Save or Update Button -->
+  <button type="button" (click)="saveMaterial()">
+    {{ editingIndex !== null ? 'Update Study Material' : 'Save Study Material' }}
+  </button>
+  
+@if (editingIndex !== null) {
+  <button
+    type="button"
+    class="cancel-button"
+    (click)="cancelEdit()"
+  >
+    Cancel Edit
+  </button>
+}
+
+</div>
+
+<!-- Status Message -->
+@if (message) {
+  <p class="status-message">{{ message }}</p>
+}
+
+<!-- Saved Materials -->
+@if (savedMaterials.length > 0) {
+  <div class="saved-materials">
+    <h2>My Saved Materials</h2>
+
+    @for (material of savedMaterials; track $index) {
+      <div class="material-preview">
+        <h3>{{ material.title }}</h3>
+
+        <p>
+          <strong>Subject:</strong>
+          {{ material.subject }}
+        </p>
+
+        <p class="material-content">{{ material.content }}</p>
+
+        <button
+          type="button"
+          class="edit-button"
+          (click)="editMaterial($index)"
+        >
+          Edit
+        </button>
+
+        <button
+          type="button"
+          class="delete-button"
+          (click)="deleteMaterial($index)"
+        >
+          Delete
+        </button>
+      </div>
+    }
+  </div>
+}

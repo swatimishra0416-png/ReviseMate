@@ -6,6 +6,12 @@
   <p class="subtitle">
     Explore the main concepts and their connections.
   </p>
+  
+<div class="mind-map-controls">
+  <button (click)="expandAll()">Expand All</button>
+  <button (click)="collapseAll()">Collapse All</button>
+</div>
+
 
   @if (currentMindMap; as mindMap) {
 
@@ -17,23 +23,32 @@
 
       <div class="mind-map-branches">
 
-        @for (topic of mindMap.topics; track topic.title) {
-          <div class="mind-map-branch">
+        
+@for (topic of mindMap.topics; track topic.title) {
+  <div class="mind-map-branch">
 
-            <div class="topic-node">
-              {{ topic.title }}
-            </div>
+    <button
+      class="topic-node"
+      (click)="toggleTopic(topic.title)"
+      [attr.aria-expanded]="expandedTopics.includes(topic.title)"
+    >
+      {{ topic.title }}
+      {{ expandedTopics.includes(topic.title) ? '−' : '+' }}
+    </button>
 
-            <div class="subtopic-list">
-              @for (subtopic of topic.subtopics; track subtopic) {
-                <div class="subtopic-node">
-                  {{ subtopic }}
-                </div>
-              }
-            </div>
-
+    @if (expandedTopics.includes(topic.title)) {
+      <div class="subtopic-list">
+        @for (subtopic of topic.subtopics; track subtopic) {
+          <div class="subtopic-node">
+            {{ subtopic }}
           </div>
         }
+      </div>
+    }
+
+  </div>
+}
+
 
       </div>
 

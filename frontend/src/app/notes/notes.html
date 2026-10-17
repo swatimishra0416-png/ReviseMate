@@ -1,10 +1,7 @@
-
 <div class="notes-container">
-    
   <h1>My Notes</h1>
   <p>Upload or paste your study material to start revising.</p>
 
-  <!-- Material Title -->
   <div class="form-group">
     <label for="title">Material Title</label>
     <input
@@ -15,7 +12,6 @@
     />
   </div>
 
-  <!-- Subject Selection -->
   <div class="form-group">
     <label for="subject">Select Subject</label>
     <select id="subject" [(ngModel)]="selectedSubject">
@@ -25,7 +21,6 @@
     </select>
   </div>
 
-  <!-- File Upload -->
   <div class="form-group">
     <label for="studyFile">Upload a Text File (.txt)</label>
     <input
@@ -36,11 +31,10 @@
     />
 
     <p class="uploaded-file">
-  Uploaded filename: {{ selectedFileName || 'No file loaded yet' }}
-</p>
+      Uploaded filename: {{ selectedFileName || 'No file loaded yet' }}
+    </p>
   </div>
 
-  <!-- Study Material Text -->
   <div class="form-group">
     <label for="material">Paste Study Material</label>
     <textarea
@@ -51,34 +45,34 @@
     ></textarea>
   </div>
 
-  <!-- Save or Update Button -->
   <button type="button" (click)="saveMaterial()">
-    {{ editingIndex !== null ? 'Update Study Material' : 'Save Study Material' }}
+    {{ editingId !== null ? 'Update Study Material' : 'Save Study Material' }}
   </button>
-  
-@if (editingIndex !== null) {
-  <button
-    type="button"
-    class="cancel-button"
-    (click)="cancelEdit()"
-  >
-    Cancel Edit
-  </button>
-}
 
+  @if (editingId !== null) {
+    <button
+      type="button"
+      class="cancel-button"
+      (click)="cancelEdit()"
+    >
+      Cancel Edit
+    </button>
+  }
 </div>
 
-<!-- Status Message -->
 @if (message) {
   <p class="status-message">{{ message }}</p>
 }
 
-<!-- Saved Materials -->
-@if (savedMaterials.length > 0) {
-  <div class="saved-materials">
-    <h2>My Saved Materials</h2>
+<div class="saved-materials">
+  <h2>My Saved Materials</h2>
 
-    @for (material of savedMaterials; track $index) {
+  @if (isLoading) {
+    <p>Loading your saved materials...</p>
+  } @else if (savedMaterials.length === 0) {
+    <p>No saved materials yet. Create your first note above!</p>
+  } @else {
+    @for (material of savedMaterials; track material._id) {
       <div class="material-preview">
         <h3>{{ material.title }}</h3>
 
@@ -92,7 +86,7 @@
         <button
           type="button"
           class="edit-button"
-          (click)="editMaterial($index)"
+          (click)="editMaterial(material)"
         >
           Edit
         </button>
@@ -100,11 +94,11 @@
         <button
           type="button"
           class="delete-button"
-          (click)="deleteMaterial($index)"
+          (click)="deleteMaterial(material)"
         >
           Delete
         </button>
       </div>
     }
-  </div>
-}
+  }
+</div>

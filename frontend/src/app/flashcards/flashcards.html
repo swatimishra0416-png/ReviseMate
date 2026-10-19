@@ -1,2 +1,233 @@
-<h1>Flashcards</h1>
-<p>Your revision flashcards will appear here.</p>
+
+<div class="flashcards-page">
+  <header class="page-header">
+    <div>
+      <h1>Revision Flashcards</h1>
+      <p>Test your memory, one question at a time.</p>
+    </div>
+
+    <span class="total-count">
+      {{ filteredFlashcards.length }} cards
+    </span>
+  </header>
+
+  <div class="subject-filter">
+    <label for="subjectFilter">Choose a subject</label>
+
+    <select
+      id="subjectFilter"
+      [ngModel]="selectedSubject"
+      (ngModelChange)="changeSubject($event)"
+    >
+      @for (subject of subjects; track subject) {
+        <option [value]="subject">{{ subject }}</option>
+      }
+    </select>
+  </div>
+
+  @if (errorMessage) {
+    <p class="message error-message">{{ errorMessage }}</p>
+  }
+
+  @if (successMessage) {
+    <p class="message success-message">{{ successMessage }}</p>
+  }
+
+  @if (loading) {
+    <p class="status-message">Loading your flashcards...</p>
+  } @else {
+    <section class="progress-section">
+  <div class="progress-heading">
+    <div>
+      <h2>Revision progress</h2>
+      <p>{{ knownCount }} of {{ filteredFlashcards.length }} cards mastered</p>
+    </div>
+
+    <strong>{{ progressPercentage }}%</strong>
+  </div>
+
+  <div
+    class="progress-track"
+    role="progressbar"
+    [attr.aria-valuenow]="progressPercentage"
+    aria-valuemin="0"
+    aria-valuemax="100"
+    aria-label="Flashcard revision progress"
+  >
+    <div
+      class="progress-fill"
+      [style.width.%]="progressPercentage"
+    ></div>
+  </div>
+</section>
+    <section class="study-section">
+      @if (currentCard; as card) {
+        <p class="card-counter">
+          Card {{ currentIndex + 1 }} of {{ filteredFlashcards.length }}
+        </p>
+
+        <button
+          type="button"
+          class="flashcard"
+          [class.flipped]="isFlipped"
+          (click)="flipCard()"
+          aria-label="Flip flashcard to reveal the answer"
+        >
+          @if (!isFlipped) {
+            <span class="card-label">QUESTION</span>
+            <span class="card-text">{{ card.question }}</span>
+            <span class="flip-hint">Click to reveal answer</span>
+          } @else {
+            <span class="card-label">ANSWER</span>
+            <span class="card-text">{{ card.answer }}</span>
+            <span class="flip-hint">Click to see question</span>
+          }
+        </button>
+
+        <div class="navigation">
+          <button
+            type="button"
+            class="secondary-button"
+            (click)="previousCard()"
+            [disabled]="currentIndex === 0"
+          >
+            ← Previous
+          </button>
+
+          <button
+            type="button"
+            class="primary-button"
+            (click)="flipCard()"
+          >
+            {{ isFlipped ? 'Show Question' : 'Reveal Answer' }}
+          </button>
+
+          <button
+            type="button"
+            class="secondary-button"
+            (click)="nextCard()"
+            [disabled]="currentIndex === filteredFlashcards.length - 1"
+          >
+            Next →
+          </button>
+        </div>
+        <div class="status-actions">
+  <button
+    type="button"
+    class="needs-revision-button"
+    (click)="markStatus('needs-revision')"
+    [disabled]="updatingStatus"
+  >
+    ↻ Needs revision
+  </button>
+
+  <button
+    type="button"
+    class="known-button"
+    (click)="markStatus('known')"
+    [disabled]="updatingStatus"
+  >
+    ✓ Know it
+  </button>
+</div>
+
+@if (card.status === 'known') {
+  <p class="status-label known-label">You know this card!</p>
+} @else {
+  <p class="status-label revision-label">Keep practising this card.</p>
+}
+        <div class="card-actions">
+          <button
+            type="button"
+            class="edit-button"
+            (click)="editFlashcard(card)"
+          >
+            Edit card
+          </button>
+
+          <button
+            type="button"
+            class="delete-button"
+            (click)="deleteFlashcard(card)"
+          >
+            Delete card
+          </button>
+        </div>
+      } @else {
+        <div class="empty-state">
+          <h2>No flashcards yet</h2>
+          <p>
+            Create your first {{ selectedSubject }} flashcard using the form below.
+          </p>
+        </div>
+      }
+    </section>
+  }
+
+  <section class="form-section">
+    <h2>{{ editingId ? 'Edit Flashcard' : 'Create a Flashcard' }}</h2>
+    <p>Save questions and answers for future revision.</p>
+
+    <form (ngSubmit)="saveFlashcard()">
+      <label for="formSubject">Subject</label>
+      <select
+        id="formSubject"
+        name="formSubject"
+        [(ngModel)]="formSubject"
+        required
+      >
+        @for (subject of subjects; track subject) {
+          <option [value]="subject">{{ subject }}</option>
+        }
+      </select>
+
+      <label for="question">Question</label>
+      <textarea
+        id="question"
+        name="question"
+        [(ngModel)]="question"
+        placeholder="Example: What is the purpose of DNS?"
+        rows="3"
+        maxlength="1000"
+        required
+      ></textarea>
+
+      <label for="answer">Answer</label>
+      <textarea
+        id="answer"
+        name="answer"
+        [(ngModel)]="answer"
+        placeholder="Write a clear answer..."
+        rows="4"
+        maxlength="5000"
+        required
+      ></textarea>
+
+      <div class="form-actions">
+        <button
+          type="submit"
+          class="primary-button"
+          [disabled]="saving"
+        >
+          {{
+            saving
+              ? 'Saving...'
+              : editingId
+                ? 'Update Flashcard'
+                : 'Save Flashcard'
+          }}
+        </button>
+
+        @if (editingId) {
+          <button
+            type="button"
+            class="secondary-button"
+            (click)="cancelEdit()"
+          >
+            Cancel
+          </button>
+        }
+      </div>
+    </form>
+  </section>
+</div>

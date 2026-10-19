@@ -1,0 +1,361 @@
+
+.flashcards-page {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 28px 20px 48px;
+  color: #243047;
+}
+
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 26px;
+}
+
+.page-header h1 {
+  margin: 0 0 8px;
+  font-size: 30px;
+}
+
+.page-header p,
+.form-section > p {
+  margin: 0;
+  color: #68758b;
+}
+
+.total-count {
+  padding: 8px 14px;
+  border-radius: 20px;
+  background: #e9efff;
+  color: #3658b8;
+  white-space: nowrap;
+}
+
+.subject-filter {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 24px;
+}
+
+.subject-filter label,
+.form-section label {
+  font-weight: 600;
+}
+
+select,
+textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 11px 12px;
+  border: 1px solid #d6dce7;
+  border-radius: 9px;
+  background: white;
+  color: #243047;
+  font: inherit;
+}
+
+.subject-filter select {
+  width: auto;
+  min-width: 220px;
+}
+
+.study-section {
+  padding: 24px;
+  border: 1px solid #e3e8f0;
+  border-radius: 16px;
+  background: #f8faff;
+  text-align: center;
+}
+
+.card-counter {
+  color: #68758b;
+  font-size: 14px;
+}
+
+.flashcard {
+  display: flex;
+  width: 100%;
+  min-height: 250px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  padding: 30px;
+  border: 1px solid #dbe3f5;
+  border-radius: 16px;
+  background: white;
+  color: #243047;
+  cursor: pointer;
+  font: inherit;
+  text-align: center;
+  overflow-wrap: anywhere;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.flashcard:hover {
+  border-color: #8ea6f0;
+  background: #fcfdff;
+}
+
+.flashcard.flipped {
+  background: #edf7f0;
+  border-color: #b6ddc1;
+}
+
+.card-label {
+  color: #526bc3;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 2px;
+}
+
+.card-text {
+  max-width: 700px;
+  font-size: 21px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+.flip-hint {
+  color: #7b8799;
+  font-size: 13px;
+}
+
+.navigation,
+.card-actions,
+.form-actions {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+button {
+  font: inherit;
+}
+
+.primary-button,
+.secondary-button,
+.edit-button,
+.delete-button {
+  padding: 10px 16px;
+  border: 0;
+  border-radius: 9px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.primary-button {
+  background: #405fd0;
+  color: white;
+}
+
+.secondary-button {
+  background: #e8ecf4;
+  color: #35415a;
+}
+
+.edit-button {
+  background: #fff0cf;
+  color: #76531a;
+}
+
+.delete-button {
+  background: #ffebeb;
+  color: #a42e36;
+}
+
+button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.form-section {
+  margin-top: 30px;
+  padding: 24px;
+  border: 1px solid #e3e8f0;
+  border-radius: 16px;
+  background: white;
+}
+
+.form-section h2 {
+  margin-top: 0;
+  margin-bottom: 8px;
+}
+
+.form-section form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 22px;
+}
+
+textarea {
+  resize: vertical;
+  margin-bottom: 8px;
+}
+
+.form-actions {
+  justify-content: flex-start;
+  margin-top: 8px;
+}
+
+.empty-state {
+  padding: 42px 16px;
+}
+
+.empty-state p,
+.status-message {
+  color: #68758b;
+}
+
+.message {
+  padding: 12px 14px;
+  border-radius: 9px;
+  overflow-wrap: anywhere;
+}
+
+.error-message {
+  background: #ffebeb;
+  color: #a42e36;
+}
+
+.success-message {
+  background: #e9f7ed;
+  color: #23683b;
+}
+
+@media (max-width: 600px) {
+  .flashcards-page {
+    padding: 20px 12px 36px;
+  }
+
+  .page-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .subject-filter {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .subject-filter select {
+    width: 100%;
+  }
+
+  .study-section,
+  .form-section {
+    padding: 16px;
+  }
+
+  .flashcard {
+    min-height: 220px;
+    padding: 20px;
+  }
+
+  .card-text {
+    font-size: 18px;
+  }
+
+  .navigation > button {
+    flex: 1;
+  }
+}
+
+.progress-section {
+  margin-bottom: 24px;
+  padding: 20px;
+  border: 1px solid #e3e8f0;
+  border-radius: 14px;
+  background: white;
+}
+
+.progress-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.progress-heading h2 {
+  margin: 0 0 6px;
+  font-size: 19px;
+}
+
+.progress-heading p {
+  margin: 0;
+  color: #68758b;
+  font-size: 14px;
+}
+
+.progress-heading strong {
+  color: #218653;
+  font-size: 24px;
+}
+
+.progress-track {
+  height: 10px;
+  overflow: hidden;
+  border-radius: 20px;
+  background: #e8edf3;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: #22a06b;
+  transition: width 0.3s ease;
+}
+
+.status-actions {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 22px;
+}
+
+.needs-revision-button,
+.known-button {
+  padding: 11px 18px;
+  border: 0;
+  border-radius: 9px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.needs-revision-button {
+  background: #fff0cf;
+  color: #76531a;
+}
+
+.known-button {
+  background: #dff5e7;
+  color: #23683b;
+}
+
+.needs-revision-button:disabled,
+.known-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.status-label {
+  margin: 12px 0 0;
+  font-size: 14px;
+}
+
+.known-label {
+  color: #218653;
+}
+
+.revision-label {
+  color: #9a6b20;
+}

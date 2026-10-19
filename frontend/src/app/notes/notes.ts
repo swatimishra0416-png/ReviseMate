@@ -1,4 +1,8 @@
-import { Component, OnInit } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  ChangeDetectorRef
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { NotesService, StudyMaterial } from '../services/notes.service';
 
@@ -27,7 +31,10 @@ export class Notes implements OnInit {
   editingId: string | null = null;
   isLoading = false;
 
-  constructor(private notesService: NotesService) {}
+  constructor(
+  private notesService: NotesService,
+  private cdr: ChangeDetectorRef
+) {}
 
   ngOnInit(): void {
     this.loadMaterials();
@@ -35,20 +42,28 @@ export class Notes implements OnInit {
 
   // Load saved notes from MongoDB through the backend
   loadMaterials(): void {
-    this.isLoading = true;
+  this.isLoading = true;
+  this.cdr.markForCheck();
 
-    this.notesService.getNotes().subscribe({
-      next: (materials) => {
-        this.savedMaterials = materials;
-        this.isLoading = false;
-      },
-      error: (error) => {
-        console.error('Error loading notes:', error);
-        this.message = 'Could not load notes. Check that the backend is running.';
-        this.isLoading = false;
-      }
-    });
-  }
+  this.notesService.getNotes().subscribe({
+    next: (materials) => {
+      this.savedMaterials = materials;
+      this.isLoading = false;
+
+      console.log('Notes received from API:', materials.length);
+      this.cdr.detectChanges();
+    },
+    error: (error) => {
+      console.error('Error loading notes:', error);
+
+      this.message =
+        'Could not load notes. Check that the backend is running.';
+
+      this.isLoading = false;
+      this.cdr.detectChanges();
+    }
+  });
+}
 
   // Create a new note or update an existing one
   saveMaterial(): void {

@@ -1,13 +1,62 @@
-<h1>Welcome to your Dashboard 👋</h1>
 
-<p>Welcome back, Swati!</p>
+<div class="dashboard-page">
+  <header class="dashboard-header">
+    <div>
+      <h1>Welcome back, {{ studentName }}! 👋</h1>
+      <p>Here's your revision progress at a glance.</p>
+    </div>
 
-<div>
-  <h3>Subjects Completed</h3>
-  <p>4</p>
-</div>
+    <button
+      type="button"
+      class="refresh-button"
+      (click)="loadDashboardData()"
+      [disabled]="loading"
+    >
+      ↻ Refresh
+    </button>
+  </header>
 
-<div>
-  <h3>Revision Streak</h3>
-  <p>7 days 🔥</p>
+  @if (loading) {
+    <p class="dashboard-message">Loading your dashboard...</p>
+  } @else {
+    @if (errorMessage) {
+      <p class="error-message">{{ errorMessage }}</p>
+    }
+
+    <section class="stats-grid">
+      <article class="stat-card">
+        <div class="stat-icon notes-icon">📝</div>
+        <p class="stat-label">Saved Notes</p>
+        <h2>{{ totalNotes }}</h2>
+        <p class="stat-description">Notes stored in your account</p>
+      </article>
+
+      <article class="stat-card">
+        <div class="stat-icon cards-icon">🗂️</div>
+        <p class="stat-label">Total Flashcards</p>
+        <h2>{{ totalFlashcards }}</h2>
+        <p class="stat-description">Cards ready for revision</p>
+      </article>
+
+      <article class="stat-card">
+        <div class="stat-icon mastered-icon">✅</div>
+        <p class="stat-label">Cards Mastered</p>
+        <h2>{{ masteredFlashcards }}</h2>
+        <p class="stat-description">Cards marked as Know it</p>
+      </article>
+
+      <article class="stat-card">
+        <div class="stat-icon progress-icon">📈</div>
+        <p class="stat-label">Revision Progress</p>
+        <h2>{{ revisionProgress }}%</h2>
+        <div class="progress-track">
+          <div
+            class="progress-fill"
+            [style.width.%]="revisionProgress"
+          ></div>
+        </div>
+        <p class="stat-description">Across all subjects</p>
+      </article>
+    </section>
+  }
 </div>

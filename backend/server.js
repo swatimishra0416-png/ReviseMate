@@ -7,8 +7,10 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
+
 const Note = require('./models/Note');
 const Flashcard = require('./models/Flashcard');
+const MindMap = require('./models/MindMap');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -32,7 +34,17 @@ const allowedSubjects = [
   'Data Structures'
 ];
 
-// Reusable input validation
+const allowedMindMapSubjects = [
+  'Computer Networks',
+  'DBMS',
+  'Operating Systems',
+  'Data Structures'
+];
+
+// ==================================================
+// NOTE VALIDATION
+// ==================================================
+
 function validateNoteInput(body) {
   if (!body || typeof body !== 'object' || Array.isArray(body)) {
     return 'A valid JSON object is required.';
@@ -66,7 +78,10 @@ function validateNoteInput(body) {
   return null;
 }
 
-// Health check
+// ==================================================
+// HEALTH CHECK
+// ==================================================
+
 app.get('/', (req, res) => {
   res.json({
     message: 'ReviseMate backend is running!',
@@ -75,6 +90,10 @@ app.get('/', (req, res) => {
       : 'disconnected'
   });
 });
+
+// ==================================================
+// NOTES API
+// ==================================================
 
 // GET: Fetch all notes
 app.get('/api/notes', async (req, res) => {
@@ -230,51 +249,9 @@ app.delete('/api/notes/:id', async (req, res) => {
   }
 });
 
-// Handle malformed JSON and oversized requests
-app.use((error, req, res, next) => {
-  if (error.type === 'entity.parse.failed') {
-    return res.status(400).json({
-      message: 'Invalid JSON in request body.'
-    });
-  }
-
-  if (error.type === 'entity.too.large') {
-    return res.status(413).json({
-      message: 'Request body is too large.'
-    });
-  }
-
-  console.error('Request error:', error.message);
-
-  res.status(500).json({
-    message: 'An unexpected server error occurred.'
-  });
-});
-
-// Connect to MongoDB before accepting requests
-async function startServer() {
-  try {
-    if (!process.env.MONGODB_URI) {
-      throw new Error('MONGODB_URI is missing from the .env file.');
-    }
-
-    await mongoose.connect(process.env.MONGODB_URI);
-
-    console.log('MongoDB connected successfully!');
-
-    app.listen(PORT, () => {
-      console.log(
-        `ReviseMate backend running at http://localhost:${PORT}`
-      );
-    });
-  } catch (error) {
-    console.error('Backend startup failed:', error.message);
-    process.exit(1);
-  }
-}
-
-startServer();
-
+// ==================================================
+// FLASHCARDS API
+// ==================================================
 
 // GET: Fetch all flashcards, newest first
 app.get('/api/flashcards', async (req, res) => {
@@ -283,7 +260,9 @@ app.get('/api/flashcards', async (req, res) => {
     res.json(flashcards);
   } catch (error) {
     console.error('Fetch flashcards error:', error.message);
-    res.status(500).json({ message: 'Failed to fetch flashcards.' });
+    res.status(500).json({
+      message: 'Failed to fetch flashcards.'
+    });
   }
 });
 
@@ -316,7 +295,9 @@ app.post('/api/flashcards', async (req, res) => {
     res.status(201).json(flashcard);
   } catch (error) {
     console.error('Create flashcard error:', error.message);
-    res.status(500).json({ message: 'Failed to create flashcard.' });
+    res.status(500).json({
+      message: 'Failed to create flashcard.'
+    });
   }
 });
 
@@ -324,7 +305,9 @@ app.post('/api/flashcards', async (req, res) => {
 app.put('/api/flashcards/:id', async (req, res) => {
   try {
     if (!mongoose.isValidObjectId(req.params.id)) {
-      return res.status(400).json({ message: 'Invalid flashcard ID.' });
+      return res.status(400).json({
+        message: 'Invalid flashcard ID.'
+      });
     }
 
     const { question, answer, subject } = req.body || {};
@@ -351,24 +334,32 @@ app.put('/api/flashcards/:id', async (req, res) => {
         answer: answer.trim(),
         subject
       },
-      { new: true, runValidators: true }
+      {
+        new: true,
+        runValidators: true
+      }
     );
 
     if (!flashcard) {
-      return res.status(404).json({ message: 'Flashcard not found.' });
+      return res.status(404).json({
+        message: 'Flashcard not found.'
+      });
     }
 
     res.json(flashcard);
   } catch (error) {
     console.error('Update flashcard error:', error.message);
-    res.status(500).json({ message: 'Failed to update flashcard.' });
+    res.status(500).json({
+      message: 'Failed to update flashcard.'
+    });
   }
 });
 
+// PATCH: Update flashcard status
 app.patch('/api/flashcards/:id/status', async (req, res) => {
   try {
     const { id } = req.params;
-    const { status } = req.body;
+    const { status } = req.body || {};
 
     if (!mongoose.isValidObjectId(id)) {
       return res.status(400).json({
@@ -399,31 +390,252 @@ app.patch('/api/flashcards/:id/status', async (req, res) => {
 
     res.json(flashcard);
   } catch (error) {
-    console.error('Error updating flashcard status:', error);
-
+    console.error('Error updating flashcard status:', error.message);
     res.status(500).json({
       message: 'Could not update flashcard status.'
     });
   }
 });
 
-
 // DELETE: Delete a flashcard
 app.delete('/api/flashcards/:id', async (req, res) => {
   try {
     if (!mongoose.isValidObjectId(req.params.id)) {
-      return res.status(400).json({ message: 'Invalid flashcard ID.' });
+      return res.status(400).json({
+        message: 'Invalid flashcard ID.'
+      });
     }
 
     const flashcard = await Flashcard.findByIdAndDelete(req.params.id);
 
     if (!flashcard) {
-      return res.status(404).json({ message: 'Flashcard not found.' });
+      return res.status(404).json({
+        message: 'Flashcard not found.'
+      });
     }
 
-    res.json({ message: 'Flashcard deleted successfully.' });
+    res.json({
+      message: 'Flashcard deleted successfully.'
+    });
   } catch (error) {
     console.error('Delete flashcard error:', error.message);
-    res.status(500).json({ message: 'Failed to delete flashcard.' });
+    res.status(500).json({
+      message: 'Failed to delete flashcard.'
+    });
   }
 });
+
+// ==================================================
+// MIND MAPS API
+// ==================================================
+
+// GET: Fetch all saved mind maps
+app.get('/api/mindmaps', async (req, res) => {
+  try {
+    const mindMaps = await MindMap.find().sort({ subject: 1 });
+    res.json(mindMaps);
+  } catch (error) {
+    console.error('Error fetching mind maps:', error.message);
+    res.status(500).json({
+      message: 'Could not fetch mind maps.'
+    });
+  }
+});
+
+// GET: Fetch a mind map for one subject
+app.get('/api/mindmaps/:subject', async (req, res) => {
+  try {
+    const subject = req.params.subject;
+
+    if (!allowedMindMapSubjects.includes(subject)) {
+      return res.status(400).json({
+        message: 'Invalid subject.'
+      });
+    }
+
+    const mindMap = await MindMap.findOne({ subject });
+
+    if (!mindMap) {
+      return res.status(404).json({
+        message: 'Mind map not found for this subject.'
+      });
+    }
+
+    res.json(mindMap);
+  } catch (error) {
+    console.error('Error fetching subject mind map:', error.message);
+    res.status(500).json({
+      message: 'Could not fetch the mind map.'
+    });
+  }
+});
+
+// PUT: Create or save a mind map for a subject
+app.put('/api/mindmaps/:subject', async (req, res) => {
+  try {
+    const subject = req.params.subject;
+    const body = req.body || {};
+    const { centralTopic, topics } = body;
+
+    if (!allowedMindMapSubjects.includes(subject)) {
+      return res.status(400).json({
+        message: 'Invalid subject.'
+      });
+    }
+
+    if (
+      typeof centralTopic !== 'string' ||
+      !centralTopic.trim() ||
+      centralTopic.trim().length > 150
+    ) {
+      return res.status(400).json({
+        message: 'A valid central topic is required.'
+      });
+    }
+
+    if (!Array.isArray(topics) || topics.length > 100) {
+      return res.status(400).json({
+        message: 'Topics must be an array containing at most 100 topics.'
+      });
+    }
+
+    for (const topic of topics) {
+      if (
+        !topic ||
+        typeof topic.title !== 'string' ||
+        !topic.title.trim() ||
+        topic.title.trim().length > 100 ||
+        !Array.isArray(topic.subtopics) ||
+        topic.subtopics.length > 100
+      ) {
+        return res.status(400).json({
+          message: 'Each topic must have a valid title and subtopics array.'
+        });
+      }
+
+      if (
+        topic.subtopics.some(
+          subtopic =>
+            typeof subtopic !== 'string' ||
+            !subtopic.trim() ||
+            subtopic.trim().length > 150
+        )
+      ) {
+        return res.status(400).json({
+          message: 'Each subtopic must be a non-empty string of at most 150 characters.'
+        });
+      }
+    }
+
+    const cleanTopics = topics.map(topic => ({
+      title: topic.title.trim(),
+      subtopics: topic.subtopics.map(subtopic => subtopic.trim())
+    }));
+
+    const mindMap = await MindMap.findOneAndUpdate(
+      { subject },
+      {
+        $set: {
+          subject,
+          centralTopic: centralTopic.trim(),
+          topics: cleanTopics
+        }
+      },
+      {
+        new: true,
+        upsert: true,
+        runValidators: true,
+        setDefaultsOnInsert: true
+      }
+    );
+
+    res.json(mindMap);
+  } catch (error) {
+    console.error('Error saving mind map:', error.message);
+    res.status(500).json({
+      message: 'Could not save the mind map.'
+    });
+  }
+});
+
+// DELETE: Delete a saved mind map for a subject
+app.delete('/api/mindmaps/:subject', async (req, res) => {
+  try {
+    const subject = req.params.subject;
+
+    if (!allowedMindMapSubjects.includes(subject)) {
+      return res.status(400).json({
+        message: 'Invalid subject.'
+      });
+    }
+
+    const mindMap = await MindMap.findOneAndDelete({ subject });
+
+    if (!mindMap) {
+      return res.status(404).json({
+        message: 'Mind map not found.'
+      });
+    }
+
+    res.json({
+      message: 'Mind map deleted successfully.'
+    });
+  } catch (error) {
+    console.error('Error deleting mind map:', error.message);
+    res.status(500).json({
+      message: 'Could not delete the mind map.'
+    });
+  }
+});
+
+// ==================================================
+// ERROR-HANDLING MIDDLEWARE
+// Keep this AFTER all API routes
+// ==================================================
+
+app.use((error, req, res, next) => {
+  if (error.type === 'entity.parse.failed') {
+    return res.status(400).json({
+      message: 'Invalid JSON in request body.'
+    });
+  }
+
+  if (error.type === 'entity.too.large') {
+    return res.status(413).json({
+      message: 'Request body is too large.'
+    });
+  }
+
+  console.error('Request error:', error.message);
+
+  res.status(500).json({
+    message: 'An unexpected server error occurred.'
+  });
+});
+
+// ==================================================
+// START SERVER AFTER ALL ROUTES ARE REGISTERED
+// ==================================================
+
+async function startServer() {
+  try {
+    if (!process.env.MONGODB_URI) {
+      throw new Error('MONGODB_URI is missing from the .env file.');
+    }
+
+    await mongoose.connect(process.env.MONGODB_URI);
+
+    console.log('MongoDB connected successfully!');
+
+    app.listen(PORT, () => {
+      console.log(
+        `ReviseMate backend running at http://localhost:${PORT}`
+      );
+    });
+  } catch (error) {
+    console.error('Backend startup failed:', error.message);
+    process.exit(1);
+  }
+}
+
+startServer();

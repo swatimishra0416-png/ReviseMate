@@ -1,61 +1,121 @@
 
 <div class="mind-map-container">
-
   <h1>{{ subjectName }} Mind Map</h1>
 
   <p class="subtitle">
-    Explore the main concepts and their connections.
+    Explore concepts, add your own topics, and organise your revision.
   </p>
-  
-<div class="mind-map-controls">
-  <button (click)="expandAll()">Expand All</button>
-  <button (click)="collapseAll()">Collapse All</button>
-</div>
-
 
   @if (currentMindMap; as mindMap) {
+    <div class="mind-map-controls">
+      <button type="button" (click)="expandAll()">Expand All</button>
+      <button type="button" (click)="collapseAll()">Collapse All</button>
+    </div>
+
+    <section class="editor-panel">
+      <h2>Add a topic</h2>
+
+      <form (ngSubmit)="addTopic()" class="editor-form">
+        <input
+          name="newTopicTitle"
+          [(ngModel)]="newTopicTitle"
+          placeholder="Example: Network Security"
+          maxlength="100"
+          required
+        />
+
+        <button type="submit">Add Topic</button>
+      </form>
+
+      <h2>Add a subtopic</h2>
+
+      <form (ngSubmit)="addSubtopic()" class="editor-form">
+        <select
+          name="selectedTopicTitle"
+          [(ngModel)]="selectedTopicTitle"
+          required
+        >
+          <option value="">Select a parent topic</option>
+
+          @for (topic of mindMap.topics; track topic.title) {
+            <option [value]="topic.title">{{ topic.title }}</option>
+          }
+        </select>
+
+        <input
+          name="newSubtopicTitle"
+          [(ngModel)]="newSubtopicTitle"
+          placeholder="Example: Three-way handshake"
+          maxlength="150"
+          required
+        />
+
+        <button type="submit">Add Subtopic</button>
+      </form>
+
+      @if (message) {
+        <p class="editor-message" aria-live="polite">{{ message }}</p>
+      }
+    </section>
 
     <div class="mind-map">
-
       <div class="central-topic">
         {{ mindMap.centralTopic }}
       </div>
 
       <div class="mind-map-branches">
+        @for (topic of mindMap.topics; track topic.title) {
+          <div class="mind-map-branch">
+            <div class="topic-heading">
+              <button
+                type="button"
+                class="topic-node"
+                (click)="toggleTopic(topic.title)"
+                [attr.aria-expanded]="expandedTopics.includes(topic.title)"
+              >
+                {{ topic.title }}
+                {{ expandedTopics.includes(topic.title) ? '−' : '+' }}
+              </button>
 
-        
-@for (topic of mindMap.topics; track topic.title) {
-  <div class="mind-map-branch">
+              <button
+                type="button"
+                class="delete-button"
+                (click)="deleteTopic(topic.title)"
+                [attr.aria-label]="'Delete topic ' + topic.title"
+              >
+                ×
+              </button>
+            </div>
 
-    <button
-      class="topic-node"
-      (click)="toggleTopic(topic.title)"
-      [attr.aria-expanded]="expandedTopics.includes(topic.title)"
-    >
-      {{ topic.title }}
-      {{ expandedTopics.includes(topic.title) ? '−' : '+' }}
-    </button>
+            @if (expandedTopics.includes(topic.title)) {
+              <div class="subtopic-list">
+                @for (subtopic of topic.subtopics; track subtopic) {
+                  <div class="subtopic-node">
+                    <span>{{ subtopic }}</span>
 
-    @if (expandedTopics.includes(topic.title)) {
-      <div class="subtopic-list">
-        @for (subtopic of topic.subtopics; track subtopic) {
-          <div class="subtopic-node">
-            {{ subtopic }}
+                    <button
+                      type="button"
+                      class="delete-subtopic"
+                      (click)="deleteSubtopic(topic.title, subtopic)"
+                      [attr.aria-label]="'Delete subtopic ' + subtopic"
+                    >
+                      ×
+                    </button>
+                  </div>
+                } @empty {
+                  <p class="empty-subtopics">
+                    No subtopics yet. Add one above.
+                  </p>
+                }
+              </div>
+            }
           </div>
+        } @empty {
+          <p>No topics yet. Add your first topic above.</p>
         }
       </div>
-    }
-
-  </div>
-}
-
-
-      </div>
-
     </div>
-
   } @else {
     <p>No mind map is available for {{ subjectName }} yet.</p>
   }
-
 </div>

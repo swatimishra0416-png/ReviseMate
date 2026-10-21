@@ -1,13 +1,11 @@
 
-import { Component } from '@angular/core';
+import { Component, ChangeDetectorRef } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
-
-interface QuizQuestion {
-  question: string;
-  options: string[];
-  correctAnswer: string;
-  explanation: string;
-}
+import {
+  QuizService,
+  QuizQuestion,
+  QuizAnswer
+} from '../services/quiz.service';
 
 @Component({
   imports: [],
@@ -18,169 +16,196 @@ interface QuizQuestion {
 export class Quiz {
   subjectName = '';
 
-  questionsBySubject: { [subject: string]: QuizQuestion[] } = {
-    'Computer Networks': [
-      
-{
-  question: 'Which protocol provides reliable data delivery?',
-  options: ['UDP', 'TCP', 'IP', 'DNS'],
-  correctAnswer: 'TCP',
-  explanation: 'TCP establishes a connection and provides reliable, ordered data delivery.'
-}
-,
-      {
-        question: 'Which protocol translates domain names into IP addresses?',
-        options: ['HTTP', 'FTP', 'DNS', 'TCP'],
-        correctAnswer: 'DNS',
-        explanation: 'DNS translates human-readable domain names into IP addresses.'
-      },
-      {
-        question: 'Which transport protocol is connectionless?',
-        options: ['TCP', 'UDP', 'HTTPS', 'SMTP'],
-        correctAnswer: 'UDP',
-        explanation: 'UDP is connectionless and sends data without establishing a connection first.'
-      }
-    ],
-
-    'DBMS': [
-      {
-        question: 'Which key uniquely identifies a row in a table?',
-        options: ['Foreign key', 'Primary key', 'Candidate value', 'Duplicate key'],
-        correctAnswer: 'Primary key',
-        explanation: 'A primary key uniquely identifies each row in a database table.'
-      },
-      {
-        question: 'What is the main purpose of normalization?',
-        options: [
-          'Increase duplication',
-          'Reduce data redundancy',
-          'Delete all relationships',
-          'Encrypt the database'
-        ],
-        correctAnswer: 'Reduce data redundancy',
-        explanation: 'Normalization reduces redundant data and helps maintain database consistency.'
-      },
-      {
-        question: 'What does ACID stand for?',
-        options: [
-          'Atomicity, Consistency, Isolation, Durability',
-          'Access, Control, Integration, Data',
-          'Accuracy, Consistency, Indexing, Design',
-          'Atomicity, Control, Isolation, Distribution'
-        ],
-        correctAnswer: 'Atomicity, Consistency, Isolation, Durability',
-        explanation: 'ACID represents Atomicity, Consistency, Isolation, and Durability, the key properties of reliable database transactions.'
-      }
-    ],
-
-    'Operating Systems': [
-      {
-        question: 'What is a process?',
-        options: [
-          'A program in execution',
-          'A storage device',
-          'A programming language',
-          'A type of database'
-        ],
-        correctAnswer: 'A program in execution',
-        explanation: 'A process is an instance of a program that is currently executing.'
-      },
-      {
-        question: 'Which condition occurs when processes wait indefinitely for resources?',
-        options: ['Compilation', 'Deadlock', 'Paging', 'Scheduling'],
-        correctAnswer: 'Deadlock',
-        explanation: 'Deadlock occurs when processes wait indefinitely for resources held by one another.'
-      },
-      {
-        question: 'What does CPU scheduling decide?',
-        options: [
-          'Which process gets CPU time',
-          'Which file gets deleted',
-          'How a database is normalized',
-          'Which IP address is assigned'
-        ],
-        correctAnswer: 'Which process gets CPU time',
-        explanation: 'CPU scheduling selects which ready process gets CPU time next.'
-      }
-    ],
-
-    'Data Structures': [
-      {
-        question: 'Which principle does a stack follow?',
-        options: ['FIFO', 'LIFO', 'Random order', 'Sorted order'],
-        correctAnswer: 'LIFO',
-        explanation: 'LIFO means the last element inserted is the first element removed.'
-      },
-      {
-        question: 'Which principle does a queue follow?',
-        options: ['LIFO', 'FIFO', 'Binary search', 'Recursion'],
-        correctAnswer: 'FIFO',
-        explanation: 'FIFO means the first element inserted is the first element removed.'
-      },
-      {
-        question: 'What is the time complexity of accessing an array element by index?',
-        options: ['O(n)', 'O(log n)', 'O(1)', 'O(n²)'],
-        correctAnswer: 'O(1)',
-        explanation: 'Array elements can be accessed directly by index, giving constant-time O(1) access.'
-      }
-    ]
-  };
+  questions: QuizQuestion[] = [];
 
   currentQuestionIndex = 0;
   selectedAnswer = '';
   score = 0;
+
   quizFinished = false;
   answerSubmitted = false;
 
-  constructor(private route: ActivatedRoute) {
+  loading = true;
+  loadingAnswer = false;
+
+  errorMessage = '';
+  answerError = '';
+  currentAnswer: QuizAnswer | null = null;
+
+  // Quiz attempt saving status
+  savingAttempt = false;
+  attemptSaved = false;
+  attemptSaveError = '';
+
+  constructor(
+    private route: ActivatedRoute,
+    private quizService: QuizService,
+    private cdr: ChangeDetectorRef
+  ) {
     this.subjectName =
-      this.route.snapshot.paramMap.get('subject') || 'Computer Networks';
+      this.route.snapshot.paramMap.get('subject') ||
+      'Computer Networks';
+
+    this.loadQuestions();
   }
 
-  get questions(): QuizQuestion[] {
-    return this.questionsBySubject[this.subjectName] || [];
+  get currentQuestion(): QuizQuestion | undefined {
+    return this.questions[this.currentQuestionIndex];
   }
 
+  // Load questions from MongoDB through the backend API
+  loadQuestions() {
+    this.loading = true;
+    this.errorMessage = '';
+
+    this.quizService.getQuestions(this.subjectName).subscribe({
+      next: (questions) => {
+        this.questions = questions;
+        this.currentQuestionIndex = 0;
+        this.loading = false;
+
+        if (questions.length === 0) {
+          this.errorMessage =
+            'No quiz questions are available for this subject yet.';
+        }
+
+        this.cdr.detectChanges();
+      },
+
+      error: (error) => {
+        console.error('Could not load quiz questions:', error);
+
+        this.loading = false;
+        this.errorMessage =
+          'Could not load quiz questions. Please check that the backend is running and try again.';
+
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  // Select an answer
   selectAnswer(option: string) {
+    if (this.answerSubmitted || this.loadingAnswer) {
+      return;
+    }
+
     this.selectedAnswer = option;
   }
 
-  
-submitAnswer() {
-  if (!this.selectedAnswer || this.answerSubmitted) {
-    return;
+  // Check the selected answer using the backend
+  submitAnswer() {
+    if (
+      !this.selectedAnswer ||
+      this.answerSubmitted ||
+      this.loadingAnswer ||
+      !this.currentQuestion
+    ) {
+      return;
+    }
+
+    this.loadingAnswer = true;
+    this.answerError = '';
+
+    this.quizService
+      .getAnswer(this.currentQuestion._id)
+      .subscribe({
+        next: (answer) => {
+          this.currentAnswer = answer;
+
+          if (this.selectedAnswer === answer.correctAnswer) {
+            this.score++;
+          }
+
+          this.answerSubmitted = true;
+          this.loadingAnswer = false;
+
+          this.cdr.detectChanges();
+        },
+
+        error: (error) => {
+          console.error('Could not load the answer:', error);
+
+          this.loadingAnswer = false;
+          this.answerError =
+            'Could not check your answer. Please try again.';
+
+          this.cdr.detectChanges();
+        }
+      });
   }
 
-  this.answerSubmitted = true;
+  // Move to the next question or finish the quiz
+  nextQuestion() {
+    if (!this.answerSubmitted) {
+      return;
+    }
 
-  if (
-    this.selectedAnswer ===
-    this.questions[this.currentQuestionIndex].correctAnswer
-  ) {
-    this.score++;
+    if (this.currentQuestionIndex < this.questions.length - 1) {
+      this.currentQuestionIndex++;
+      this.selectedAnswer = '';
+      this.answerSubmitted = false;
+      this.currentAnswer = null;
+      this.answerError = '';
+    } else {
+      this.quizFinished = true;
+      this.saveQuizAttempt();
+    }
   }
-}
 
-nextQuestion() {
-  if (!this.answerSubmitted) {
-    return;
+  // Save the completed quiz attempt to MongoDB
+  saveQuizAttempt() {
+    if (this.savingAttempt || this.attemptSaved) {
+      return;
+    }
+
+    if (this.questions.length === 0) {
+      return;
+    }
+
+    this.savingAttempt = true;
+    this.attemptSaveError = '';
+
+    this.quizService
+      .saveAttempt(
+        this.subjectName,
+        this.score,
+        this.questions.length
+      )
+      .subscribe({
+        next: (response) => {
+          console.log(response.message);
+
+          this.savingAttempt = false;
+          this.attemptSaved = true;
+
+          this.cdr.detectChanges();
+        },
+
+        error: (error) => {
+          console.error('Could not save quiz attempt:', error);
+
+          this.savingAttempt = false;
+          this.attemptSaveError =
+            'Your score could not be saved. Please try again.';
+
+          this.cdr.detectChanges();
+        }
+      });
   }
 
-  if (this.currentQuestionIndex < this.questions.length - 1) {
-    this.currentQuestionIndex++;
-    this.selectedAnswer = '';
-    this.answerSubmitted = false;
-  } else {
-    this.quizFinished = true;
-  }
-}
-
-
+  // Restart the quiz
   restartQuiz() {
-  this.currentQuestionIndex = 0;
-  this.selectedAnswer = '';
-  this.score = 0;
-  this.quizFinished = false;
-  this.answerSubmitted = false;
-}
+    this.currentQuestionIndex = 0;
+    this.selectedAnswer = '';
+    this.score = 0;
+    this.quizFinished = false;
+    this.answerSubmitted = false;
+    this.currentAnswer = null;
+    this.answerError = '';
+
+    this.savingAttempt = false;
+    this.attemptSaved = false;
+    this.attemptSaveError = '';
+  }
 }

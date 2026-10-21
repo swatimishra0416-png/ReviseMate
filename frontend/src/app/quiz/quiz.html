@@ -3,23 +3,36 @@
 
   <h1>{{ subjectName }} Quiz</h1>
 
-  @if (!quizFinished) {
+  @if (loading) {
+    <div class="quiz-card">
+      <p>Loading quiz questions...</p>
+    </div>
+  } @else if (errorMessage) {
+    <div class="quiz-card">
+      <p>{{ errorMessage }}</p>
+
+      <button class="next-button" (click)="loadQuestions()">
+        Try Again
+      </button>
+    </div>
+  } @else if (!quizFinished && currentQuestion) {
     <div class="quiz-card">
 
       <p class="question-count">
-        Question {{ currentQuestionIndex + 1 }} of {{ questions.length }}
+        Question {{ currentQuestionIndex + 1 }}
+        of {{ questions.length }}
       </p>
 
-      <h2>{{ questions[currentQuestionIndex].question }}</h2>
+      <h2>{{ currentQuestion.question }}</h2>
 
       <div class="quiz-options">
-        @for (option of questions[currentQuestionIndex].options; track option) {
+        @for (option of currentQuestion.options; track option) {
           <button
             class="quiz-option"
             [class.selected]="selectedAnswer === option"
-            [class.correct]="answerSubmitted && option === questions[currentQuestionIndex].correctAnswer"
-            [class.incorrect]="answerSubmitted && selectedAnswer === option && option !== questions[currentQuestionIndex].correctAnswer"
-            [disabled]="answerSubmitted"
+            [class.correct]="answerSubmitted && option === currentAnswer?.correctAnswer"
+            [class.incorrect]="answerSubmitted && selectedAnswer === option && option !== currentAnswer?.correctAnswer"
+            [disabled]="answerSubmitted || loadingAnswer"
             (click)="selectAnswer(option)">
 
             {{ option }}
@@ -28,19 +41,26 @@
         }
       </div>
 
-      @if (answerSubmitted) {
+      @if (answerError) {
+        <p>{{ answerError }}</p>
+      }
+
+      @if (answerSubmitted && currentAnswer) {
         <div class="answer-feedback">
-          @if (selectedAnswer === questions[currentQuestionIndex].correctAnswer) {
+
+          @if (selectedAnswer === currentAnswer.correctAnswer) {
             <h3>Correct! 🎉</h3>
           } @else {
             <h3>Not quite!</h3>
+
             <p>
               Correct answer:
-              <strong>{{ questions[currentQuestionIndex].correctAnswer }}</strong>
+              <strong>{{ currentAnswer.correctAnswer }}</strong>
             </p>
           }
 
-          <p>{{ questions[currentQuestionIndex].explanation }}</p>
+          <p>{{ currentAnswer.explanation }}</p>
+
         </div>
       }
 
@@ -48,8 +68,10 @@
         <button
           class="next-button"
           (click)="submitAnswer()"
-          [disabled]="!selectedAnswer">
-          Submit Answer
+          [disabled]="!selectedAnswer || loadingAnswer">
+
+          {{ loadingAnswer ? 'Checking Answer...' : 'Submit Answer' }}
+
         </button>
       } @else {
         <button
@@ -64,7 +86,7 @@
       }
 
     </div>
-  } @else {
+  } @else if (quizFinished) {
     <div class="quiz-result">
 
       <h2>Quiz Completed!</h2>
@@ -77,6 +99,27 @@
         You answered {{ score }} out of {{ questions.length }}
         questions correctly.
       </p>
+
+      @if (savingAttempt) {
+        <p>Saving your result...</p>
+      }
+
+      @if (attemptSaved) {
+        <p>✅ Your quiz result has been saved!</p>
+      }
+
+      @if (attemptSaveError) {
+        <p>{{ attemptSaveError }}</p>
+
+        <button
+          class="next-button"
+          (click)="saveQuizAttempt()"
+          [disabled]="savingAttempt">
+
+          {{ savingAttempt ? 'Saving...' : 'Retry Saving' }}
+
+        </button>
+      }
 
       <button class="next-button" (click)="restartQuiz()">
         Try Again

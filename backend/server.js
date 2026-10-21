@@ -11,9 +11,12 @@ const mongoose = require('mongoose');
 const Note = require('./models/Note');
 const Flashcard = require('./models/Flashcard');
 const MindMap = require('./models/MindMap');
+const QuizQuestion = require('./models/QuizQuestion');
+const QuizAttempt = require('./models/QuizAttempt');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
 
 // Hide Express technology details from response headers
 app.disable('x-powered-by');
@@ -542,7 +545,7 @@ app.put('/api/mindmaps/:subject', async (req, res) => {
         }
       },
       {
-        new: true,
+        returnDocument: 'after',
         upsert: true,
         runValidators: true,
         setDefaultsOnInsert: true
@@ -592,6 +595,291 @@ app.delete('/api/mindmaps/:subject', async (req, res) => {
 // ERROR-HANDLING MIDDLEWARE
 // Keep this AFTER all API routes
 // ==================================================
+
+/* ==================================================
+   QUIZ ATTEMPTS API
+================================================== */
+
+// POST: Save a completed quiz attempt
+app.post('/api/quiz/attempts', async (req, res) => {
+  try {
+    const { subject, score, totalQuestions } = req.body || {};
+
+    const allowedSubjects = [
+      'Computer Networks',
+      'DBMS',
+      'Operating Systems',
+      'Data Structures'
+    ];
+
+    if (!allowedSubjects.includes(subject)) {
+      return res.status(400).json({
+        message: 'Invalid subject.'
+      });
+    }
+
+    if (
+      !Number.isInteger(score) ||
+      !Number.isInteger(totalQuestions) ||
+      totalQuestions < 1 ||
+      score < 0 ||
+      score > totalQuestions
+    ) {
+      return res.status(400).json({
+        message: 'Score and total questions must be valid integers.'
+      });
+    }
+
+    const attempt = await QuizAttempt.create({
+      subject,
+      score,
+      totalQuestions,
+      completedAt: new Date()
+    });
+
+    return res.status(201).json({
+      message: 'Quiz attempt saved successfully.',
+      attempt
+    });
+  } catch (error) {
+    console.error('Save quiz attempt error:', error.message);
+
+    return res.status(500).json({
+      message: 'Could not save quiz attempt.'
+    });
+  }
+});
+
+// GET: Retrieve quiz attempt history
+app.get('/api/quiz/attempts', async (req, res) => {
+  try {
+    const { subject } = req.query;
+    const filter = {};
+
+    if (subject) {
+      const allowedSubjects = [
+        'Computer Networks',
+        'DBMS',
+        'Operating Systems',
+        'Data Structures'
+      ];
+
+      if (!allowedSubjects.includes(subject)) {
+        return res.status(400).json({
+          message: 'Invalid subject.'
+        });
+      }
+
+      filter.subject = subject;
+    }
+
+    const attempts = await QuizAttempt.find(filter)
+      .sort({ completedAt: -1 })
+      .limit(100);
+
+    return res.json(attempts);
+  } catch (error) {
+    console.error('Fetch quiz attempts error:', error.message);
+
+    return res.status(500).json({
+      message: 'Could not fetch quiz attempts.'
+    });
+  }
+});
+
+
+/* ==================================================
+   QUIZ QUESTIONS API
+================================================== */
+
+// GET: Fetch quiz questions, optionally filtered by subject
+app.get('/api/quiz/questions', async (req, res) => {
+  try {
+    const { subject } = req.query;
+
+    const filter = {};
+
+    if (subject) {
+      if (!allowedSubjects.includes(subject)) {
+        return res.status(400).json({
+          message: 'Invalid subject.'
+        });
+      }
+
+      filter.subject = subject;
+    }
+
+    const questions = await QuizQuestion.find(filter)
+      .select('-correctAnswer -explanation')
+      .sort({ createdAt: 1 });
+
+    res.json(questions);
+  } catch (error) {
+    console.error('Fetch quiz questions error:', error.message);
+
+    res.status(500).json({
+      message: 'Could not fetch quiz questions.'
+    });
+  }
+});
+
+// GET: Fetch the answer and explanation for a question
+app.get('/api/quiz/questions/:id/answer', async (req, res) => {
+  try {
+    if (!mongoose.isValidObjectId(req.params.id)) {
+      return res.status(400).json({
+        message: 'Invalid question ID.'
+      });
+    }
+
+    const question = await QuizQuestion.findById(req.params.id)
+      .select('correctAnswer explanation');
+
+    if (!question) {
+      return res.status(404).json({
+        message: 'Question not found.'
+      });
+    }
+
+    res.json({
+      correctAnswer: question.correctAnswer,
+      explanation: question.explanation
+    });
+  } catch (error) {
+    console.error('Fetch quiz answer error:', error.message);
+
+    res.status(500).json({
+      message: 'Could not fetch the answer.'
+    });
+  }
+});
+
+// POST: Create a quiz question
+app.post('/api/quiz/questions', async (req, res) => {
+  try {
+    const {
+      subject,
+      question,
+      options,
+      correctAnswer,
+      explanation
+    } = req.body || {};
+
+    if (!allowedSubjects.includes(subject)) {
+      return res.status(400).json({
+        message: 'Please select a valid subject.'
+      });
+    }
+
+    if (
+      typeof question !== 'string' ||
+      !question.trim() ||
+      question.trim().length > 1000
+    ) {
+      return res.status(400).json({
+        message: 'Enter a valid question.'
+      });
+    }
+
+    if (
+      !Array.isArray(options) ||
+      options.length !== 4 ||
+      !options.every(
+        option =>
+          typeof option === 'string' &&
+          option.trim().length > 0
+      )
+    ) {
+      return res.status(400).json({
+        message: 'Provide exactly four non-empty options.'
+      });
+    }
+
+    if (
+      typeof correctAnswer !== 'string' ||
+      !options.some(
+        option => option.trim() === correctAnswer.trim()
+      )
+    ) {
+      return res.status(400).json({
+        message: 'The correct answer must match one of the options.'
+      });
+    }
+
+    if (
+      typeof explanation !== 'string' ||
+      !explanation.trim() ||
+      explanation.trim().length > 2000
+    ) {
+      return res.status(400).json({
+        message: 'Enter a valid explanation.'
+      });
+    }
+
+    const newQuestion = await QuizQuestion.create({
+      subject,
+      question: question.trim(),
+      options: options.map(option => option.trim()),
+      correctAnswer: correctAnswer.trim(),
+      explanation: explanation.trim()
+    });
+
+    res.status(201).json({
+      message: 'Quiz question created successfully.',
+      question: {
+        _id: newQuestion._id,
+        subject: newQuestion.subject,
+        question: newQuestion.question,
+        options: newQuestion.options,
+        correctAnswer: newQuestion.correctAnswer,
+        explanation: newQuestion.explanation
+      }
+    });
+  } catch (error) {
+    console.error('Create quiz question error:', error.message);
+
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({
+        message: error.message
+      });
+    }
+
+    res.status(500).json({
+      message: 'Could not create the quiz question.'
+    });
+  }
+});
+
+// DELETE: Delete a quiz question
+app.delete('/api/quiz/questions/:id', async (req, res) => {
+  try {
+    if (!mongoose.isValidObjectId(req.params.id)) {
+      return res.status(400).json({
+        message: 'Invalid question ID.'
+      });
+    }
+
+    const question = await QuizQuestion.findByIdAndDelete(
+      req.params.id
+    );
+
+    if (!question) {
+      return res.status(404).json({
+        message: 'Question not found.'
+      });
+    }
+
+    res.json({
+      message: 'Quiz question deleted successfully.'
+    });
+  } catch (error) {
+    console.error('Delete quiz question error:', error.message);
+
+    res.status(500).json({
+      message: 'Could not delete the quiz question.'
+    });
+  }
+});
 
 app.use((error, req, res, next) => {
   if (error.type === 'entity.parse.failed') {

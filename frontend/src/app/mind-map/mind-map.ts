@@ -1,18 +1,17 @@
 
 import { CommonModule } from '@angular/common';
-import { Component } from '@angular/core';
+import {
+  ChangeDetectorRef,
+  Component,
+  OnInit
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 
-interface MindMapTopic {
-  title: string;
-  subtopics: string[];
-}
-
-interface SubjectMindMap {
-  centralTopic: string;
-  topics: MindMapTopic[];
-}
+import {
+  MindMapService,
+  SubjectMindMap
+} from '../services/mind-map.service';
 
 @Component({
   selector: 'app-mind-map',
@@ -21,8 +20,9 @@ interface SubjectMindMap {
   templateUrl: './mind-map.html',
   styleUrl: './mind-map.css'
 })
-export class MindMap {
-  subjectName = '';
+export class MindMap implements OnInit {
+  subjectName = 'Computer Networks';
+
   expandedTopics: string[] = [];
 
   newTopicTitle = '';
@@ -30,9 +30,13 @@ export class MindMap {
   selectedTopicTitle = '';
 
   message = '';
+  isLoading = true;
+  isSaving = false;
 
+  // Existing sample maps are preserved as initial data.
   mindMapsBySubject: { [subject: string]: SubjectMindMap } = {
     'Computer Networks': {
+      subject: 'Computer Networks',
       centralTopic: 'Computer Networks',
       topics: [
         {
@@ -55,6 +59,7 @@ export class MindMap {
     },
 
     'DBMS': {
+      subject: 'DBMS',
       centralTopic: 'Database Management System',
       topics: [
         {
@@ -71,12 +76,18 @@ export class MindMap {
         },
         {
           title: 'Transactions',
-          subtopics: ['Atomicity', 'Consistency', 'Isolation', 'Durability']
+          subtopics: [
+            'Atomicity',
+            'Consistency',
+            'Isolation',
+            'Durability'
+          ]
         }
       ]
     },
 
     'Operating Systems': {
+      subject: 'Operating Systems',
       centralTopic: 'Operating Systems',
       topics: [
         {
@@ -93,13 +104,18 @@ export class MindMap {
         },
         {
           title: 'Deadlocks',
-          subtopics: ['Mutual Exclusion', 'Hold and Wait', 'Circular Wait']
+          subtopics: [
+            'Mutual Exclusion',
+            'Hold and Wait',
+            'Circular Wait'
+          ]
         }
       ]
     },
 
     'Data Structures': {
-      centralTopic: 'Data Structures',
+      subject: 'Data Structures',
+      centralTopic: 'Data Structures and Algorithms',
       topics: [
         {
           title: 'Linear Structures',
@@ -121,14 +137,121 @@ export class MindMap {
     }
   };
 
-  constructor(private route: ActivatedRoute) {
+  constructor(
+    private route: ActivatedRoute,
+    private mindMapService: MindMapService,
+    private cdr: ChangeDetectorRef
+  ) {}
+
+  ngOnInit(): void {
     this.subjectName =
       this.route.snapshot.queryParamMap.get('subject') ||
       'Computer Networks';
+
+    this.loadMindMap();
   }
 
   get currentMindMap(): SubjectMindMap | undefined {
     return this.mindMapsBySubject[this.subjectName];
+  }
+
+  // Load the saved map, or save the existing sample map on first visit.
+  loadMindMap(): void {
+    this.isLoading = true;
+    this.message = '';
+
+    this.mindMapService.getAllMindMaps().subscribe({
+      next: (savedMaps) => {
+        const savedMap = savedMaps.find(
+          map => map.subject === this.subjectName
+        );
+
+        if (savedMap) {
+          this.mindMapsBySubject[this.subjectName] = {
+            subject: savedMap.subject,
+            centralTopic: savedMap.centralTopic,
+            topics: savedMap.topics.map(topic => ({
+              title: topic.title,
+              subtopics: [...topic.subtopics]
+            }))
+          };
+
+          this.message = 'Mind map loaded from database.';
+          this.finishLoading();
+        } else {
+          // Preserve and save the existing sample map.
+          this.saveCurrentMindMap(true);
+        }
+      },
+
+      error: (error) => {
+        console.error('Error loading mind maps:', error);
+        this.message =
+          'Could not connect to the Mind Maps API. Check your backend.';
+        this.finishLoading();
+      }
+    });
+  }
+
+  private finishLoading(): void {
+    this.isLoading = false;
+    this.cdr.detectChanges();
+  }
+
+  // Save the current subject's map to MongoDB.
+  private saveCurrentMindMap(isInitialSave = false): void {
+    const mindMap = this.currentMindMap;
+
+    if (!mindMap) {
+      this.isSaving = false;
+      this.finishLoading();
+      return;
+    }
+
+    this.isSaving = true;
+
+    this.mindMapService.saveMindMap(
+      this.subjectName,
+      {
+        centralTopic: mindMap.centralTopic,
+        topics: mindMap.topics
+      }
+    ).subscribe({
+      next: (savedMap) => {
+        this.mindMapsBySubject[this.subjectName] = {
+          subject: savedMap.subject,
+          centralTopic: savedMap.centralTopic,
+          topics: savedMap.topics.map(topic => ({
+            title: topic.title,
+            subtopics: [...topic.subtopics]
+          }))
+        };
+
+        this.isSaving = false;
+
+        if (isInitialSave) {
+          this.message = 'Initial mind map saved to database.';
+          this.isLoading = false;
+        } else {
+          this.message = 'Changes saved to database.';
+        }
+
+        this.cdr.detectChanges();
+      },
+
+      error: (error) => {
+        console.error('Error saving mind map:', error);
+        this.isSaving = false;
+        this.message =
+          'Could not save changes. Please check your backend connection.';
+
+        if (isInitialSave) {
+          this.isLoading = false;
+        }
+
+        this.cdr.detectChanges();
+      }
+    });
   }
 
   toggleTopic(topicTitle: string): void {
@@ -159,6 +282,11 @@ export class MindMap {
       return;
     }
 
+    if (title.length > 100) {
+      this.message = 'Topic names cannot exceed 100 characters.';
+      return;
+    }
+
     const exists = mindMap.topics.some(
       topic => topic.title.toLowerCase() === title.toLowerCase()
     );
@@ -174,7 +302,8 @@ export class MindMap {
     });
 
     this.newTopicTitle = '';
-    this.message = 'Topic added successfully.';
+    this.message = '';
+    this.saveCurrentMindMap();
   }
 
   selectTopic(topicTitle: string): void {
@@ -187,7 +316,13 @@ export class MindMap {
     const mindMap = this.currentMindMap;
 
     if (!mindMap || !title || !this.selectedTopicTitle) {
-      this.message = 'Enter a subtopic and select its parent topic.';
+      this.message =
+        'Enter a subtopic and select its parent topic.';
+      return;
+    }
+
+    if (title.length > 150) {
+      this.message = 'Subtopic names cannot exceed 150 characters.';
       return;
     }
 
@@ -210,12 +345,14 @@ export class MindMap {
     }
 
     topic.subtopics.push(title);
+
     this.expandedTopics = [
       ...new Set([...this.expandedTopics, topic.title])
     ];
 
     this.newSubtopicTitle = '';
-    this.message = 'Subtopic added successfully.';
+    this.message = '';
+    this.saveCurrentMindMap();
   }
 
   deleteTopic(topicTitle: string): void {
@@ -237,10 +374,14 @@ export class MindMap {
       this.selectedTopicTitle = '';
     }
 
-    this.message = 'Topic deleted.';
+    this.message = '';
+    this.saveCurrentMindMap();
   }
 
-  deleteSubtopic(topicTitle: string, subtopicTitle: string): void {
+  deleteSubtopic(
+    topicTitle: string,
+    subtopicTitle: string
+  ): void {
     const topic = this.currentMindMap?.topics.find(
       item => item.title === topicTitle
     );
@@ -253,6 +394,7 @@ export class MindMap {
       item => item !== subtopicTitle
     );
 
-    this.message = 'Subtopic deleted.';
+    this.message = '';
+    this.saveCurrentMindMap();
   }
 }

@@ -1,5 +1,20 @@
 
 <div class="mind-map-container">
+
+  @if (isLoading) {
+    <p>Loading your mind map...</p>
+  } @else {
+    @if (isSaving) {
+      <p>Saving changes...</p>
+    }
+
+    @if (message) {
+      <p class="editor-message" aria-live="polite">
+        {{ message }}
+      </p>
+    }
+  }
+
   <h1>{{ subjectName }} Mind Map</h1>
 
   <p class="subtitle">
@@ -53,9 +68,7 @@
         <button type="submit">Add Subtopic</button>
       </form>
 
-      @if (message) {
-        <p class="editor-message" aria-live="polite">{{ message }}</p>
-      }
+      
     </section>
 
     <div class="mind-map">

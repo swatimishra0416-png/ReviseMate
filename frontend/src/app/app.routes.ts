@@ -6,6 +6,7 @@ import { MindMap } from './mind-map/mind-map';
 import { Flashcards } from './flashcards/flashcards';
 import { Quiz } from './quiz/quiz';
 import { Revision } from './revision/revision';
+import { QuizHistory } from './quiz-history/quiz-history';
 
 export const routes: Routes = [
   {
@@ -30,6 +31,10 @@ export const routes: Routes = [
   },
   
 {
+  path: 'quiz',
+  component: Quiz
+},
+{
   path: 'quiz/:subject',
   component: Quiz
 }
@@ -37,5 +42,9 @@ export const routes: Routes = [
   {
     path: 'revision/:subject', 
     component: Revision 
-  }
+  },
+  {
+  path: 'quiz-history',
+  component: QuizHistory
+}
 ];

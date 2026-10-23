@@ -1,9 +1,12 @@
-import { Component } from '@angular/core';
+
+import { Component, OnInit } from '@angular/core';
 import { Router } from '@angular/router';
+import { HttpClient } from '@angular/common/http';
 
 interface Subject {
+  _id: string;
   name: string;
-  progress: number;
+  normalizedName: string;
 }
 
 @Component({
@@ -12,30 +15,39 @@ interface Subject {
   templateUrl: './subjects.html',
   styleUrl: './subjects.css'
 })
-export class Subjects {
-  constructor(private router: Router) {}
+export class Subjects implements OnInit {
+  subjects: Subject[] = [];
+  isLoading = true;
+  errorMessage = '';
 
-  subjects: Subject[] = [
-    {
-      name: 'Computer Networks',
-      progress: 65
-    },
-    {
-      name: 'DBMS',
-      progress: 45
-    },
-    {
-      name: 'Operating Systems',
-      progress: 30
-    },
-    {
-      name: 'Data Structures',
-      progress: 70
-    }
-  ];
+  constructor(
+    private router: Router,
+    private http: HttpClient
+  ) {}
 
-  startRevision(subject: Subject) {
-    console.log('Starting revision for:', subject.name);
+  ngOnInit(): void {
+    this.loadSubjects();
+  }
+
+  loadSubjects(): void {
+    this.isLoading = true;
+    this.errorMessage = '';
+
+    this.http.get<Subject[]>('http://localhost:3000/api/subjects')
+      .subscribe({
+        next: (data) => {
+          this.subjects = data;
+          this.isLoading = false;
+        },
+        error: (error) => {
+          console.error('Error loading subjects:', error);
+          this.errorMessage = 'Could not load subjects. Please try again.';
+          this.isLoading = false;
+        }
+      });
+  }
+
+  startRevision(subject: Subject): void {
     this.router.navigate(['/revision', subject.name]);
   }
 }

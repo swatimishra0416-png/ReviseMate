@@ -1,0 +1,75 @@
+
+<div class="history-container">
+
+
+  @if (loading) {
+    <div class="history-card">
+      <p>Loading your quiz history...</p>
+    </div>
+  } @else if (errorMessage) {
+    <div class="history-card">
+      <p>{{ errorMessage }}</p>
+
+      <button class="retry-button" (click)="loadHistory()">
+        Try Again
+      </button>
+    </div>
+  } @else if (attempts.length === 0) {
+    <div class="history-card empty-state">
+      <h2>No quizzes attempted yet</h2>
+      <p>Complete your first quiz to see your results here.</p>
+    </div>
+  } @else {
+    <div class="summary-card">
+      <div>
+        <span>Total Attempts</span>
+        <h2>{{ attempts.length }}</h2>
+      </div>
+
+      <div>
+        <span>Average Score</span>
+        <h2>
+          {{
+            getAveragePercentage()
+          }}%
+        </h2>
+      </div>
+    </div>
+
+    <div class="attempt-list">
+      @for (attempt of attempts; track attempt._id) {
+        <div class="attempt-card">
+
+          <div class="attempt-header">
+            <h2>{{ attempt.subject }}</h2>
+            <span class="score-badge">
+              {{ getPercentage(attempt) }}%
+            </span>
+          </div>
+
+          <p class="score-text">
+            Score: {{ attempt.score }} / {{ attempt.totalQuestions }}
+          </p>
+
+          <div class="progress-track">
+            <div
+              class="progress-fill"
+              [style.width.%]="getPercentage(attempt)">
+            </div>
+          </div>
+
+          <p class="attempt-date">
+            Completed:
+            {{
+              attempt.completedAt
+                ? (attempt.completedAt | date:'medium')
+                : 'Date unavailable'
+            }}
+          </p>
+
+        </div>
+      }
+    </div>
+  }
+
+</div>

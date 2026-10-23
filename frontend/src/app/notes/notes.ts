@@ -1,10 +1,18 @@
+
 import {
   Component,
   OnInit,
   ChangeDetectorRef
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { HttpClient } from '@angular/common/http';
 import { NotesService, StudyMaterial } from '../services/notes.service';
+
+interface Subject {
+  _id: string;
+  name: string;
+  normalizedName: string;
+}
 
 @Component({
   selector: 'app-notes',
@@ -18,57 +26,85 @@ export class Notes implements OnInit {
   selectedSubject = 'Computer Networks';
   studyMaterial = '';
 
-  subjects = [
-    'Computer Networks',
-    'DBMS',
-    'Operating Systems',
-    'Data Structures'
-  ];
+  subjects: string[] = [];
 
   savedMaterials: StudyMaterial[] = [];
 
   message = '';
   editingId: string | null = null;
   isLoading = false;
+  isLoadingSubjects = true;
 
   constructor(
-  private notesService: NotesService,
-  private cdr: ChangeDetectorRef
-) {}
+    private notesService: NotesService,
+    private cdr: ChangeDetectorRef,
+    private http: HttpClient
+  ) {}
 
   ngOnInit(): void {
+    this.loadSubjects();
     this.loadMaterials();
+  }
+
+  // Load subjects dynamically from MongoDB through the backend
+  loadSubjects(): void {
+    this.isLoadingSubjects = true;
+
+    this.http.get<Subject[]>('http://localhost:3000/api/subjects')
+      .subscribe({
+        next: (data) => {
+          this.subjects = data.map(subject => subject.name);
+
+          if (!this.subjects.includes(this.selectedSubject)) {
+            this.selectedSubject = this.subjects[0] || '';
+          }
+
+          this.isLoadingSubjects = false;
+          this.cdr.detectChanges();
+        },
+        error: (error) => {
+          console.error('Error loading subjects:', error);
+          this.message = 'Could not load subjects. Check that the backend is running.';
+          this.isLoadingSubjects = false;
+          this.cdr.detectChanges();
+        }
+      });
   }
 
   // Load saved notes from MongoDB through the backend
   loadMaterials(): void {
-  this.isLoading = true;
-  this.cdr.markForCheck();
+    this.isLoading = true;
+    this.cdr.markForCheck();
 
-  this.notesService.getNotes().subscribe({
-    next: (materials) => {
-      this.savedMaterials = materials;
-      this.isLoading = false;
+    this.notesService.getNotes().subscribe({
+      next: (materials) => {
+        this.savedMaterials = materials;
+        this.isLoading = false;
 
-      console.log('Notes received from API:', materials.length);
-      this.cdr.detectChanges();
-    },
-    error: (error) => {
-      console.error('Error loading notes:', error);
+        console.log('Notes received from API:', materials.length);
+        this.cdr.detectChanges();
+      },
+      error: (error) => {
+        console.error('Error loading notes:', error);
 
-      this.message =
-        'Could not load notes. Check that the backend is running.';
+        this.message =
+          'Could not load notes. Check that the backend is running.';
 
-      this.isLoading = false;
-      this.cdr.detectChanges();
-    }
-  });
-}
+        this.isLoading = false;
+        this.cdr.detectChanges();
+      }
+    });
+  }
 
   // Create a new note or update an existing one
   saveMaterial(): void {
     if (!this.materialTitle.trim() || !this.studyMaterial.trim()) {
       this.message = 'Please enter a title and study material.';
+      return;
+    }
+
+    if (this.isLoadingSubjects || this.subjects.length === 0) {
+      this.message = 'Please wait for subjects to load, or add a subject first.';
       return;
     }
 

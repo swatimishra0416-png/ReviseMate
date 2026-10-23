@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { NotesService } from '../services/notes.service';
 import { FlashcardsService, Flashcard } from '../services/flashcards.service';
+import { QuizService, QuizAttempt } from '../services/quiz.service';
 
 @Component({
   selector: 'app-dashboard',
@@ -18,15 +19,18 @@ export class Dashboard implements OnInit {
   totalFlashcards = 0;
   masteredFlashcards = 0;
   revisionProgress = 0;
+  totalQuizAttempts = 0;
+  averageQuizScore = 0;
 
   loading = true;
   errorMessage = '';
 
   constructor(
-    private notesService: NotesService,
-    private flashcardsService: FlashcardsService,
-    private cdr: ChangeDetectorRef
-  ) {}
+  private notesService: NotesService,
+  private flashcardsService: FlashcardsService,
+  private quizService: QuizService,
+  private cdr: ChangeDetectorRef
+)  {}
 
   ngOnInit(): void {
     this.loadDashboardData();
@@ -39,9 +43,10 @@ export class Dashboard implements OnInit {
     let notesLoaded = false;
     let flashcardsLoaded = false;
     let hasError = false;
+    let quizLoaded = false;
 
     const finishLoading = () => {
-      if (notesLoaded && flashcardsLoaded) {
+      if (notesLoaded && flashcardsLoaded && quizLoaded) {
         this.loading = false;
 
         if (hasError) {
@@ -90,6 +95,34 @@ export class Dashboard implements OnInit {
         flashcardsLoaded = true;
         finishLoading();
       }
-    });
+    }
+  );
+  this.quizService.getAttempts().subscribe({
+  next: (attempts: QuizAttempt[]) => {
+    this.totalQuizAttempts = attempts.length;
+
+    this.averageQuizScore = attempts.length
+      ? Math.round(
+          attempts.reduce(
+            (sum, attempt) =>
+              sum +
+              (attempt.totalQuestions > 0
+                ? (attempt.score / attempt.totalQuestions) * 100
+                : 0),
+            0
+          ) / attempts.length
+        )
+      : 0;
+
+    quizLoaded = true;
+    finishLoading();
+  },
+  error: error => {
+    console.error('Could not load quiz attempts:', error);
+    hasError = true;
+    quizLoaded = true;
+    finishLoading();
+  }
+});
   }
 }

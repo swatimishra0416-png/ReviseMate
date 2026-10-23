@@ -1,6 +1,21 @@
 
 <div class="mind-map-container">
+<div class="subject-selector">
+  <label for="mindMapSubject">Choose a subject:</label>
 
+  <select
+    id="mindMapSubject"
+    [ngModel]="subjectName"
+    (ngModelChange)="changeSubject($event)"
+    name="mindMapSubject"
+  >
+    @for (subject of subjects; track subject) {
+      <option [value]="subject">
+        {{ subject }}
+      </option>
+    }
+  </select>
+</div>
   @if (isLoading) {
     <p>Loading your mind map...</p>
   } @else {

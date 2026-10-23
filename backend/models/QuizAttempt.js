@@ -6,12 +6,7 @@ const quizAttemptSchema = new mongoose.Schema(
     subject: {
       type: String,
       required: true,
-      enum: [
-        'Computer Networks',
-        'DBMS',
-        'Operating Systems',
-        'Data Structures'
-      ]
+      trim: true
     },
 
     score: {

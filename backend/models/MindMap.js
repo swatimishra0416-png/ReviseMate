@@ -26,12 +26,7 @@ const mindMapSchema = new mongoose.Schema(
       type: String,
       required: true,
       unique: true,
-      enum: [
-        'Computer Networks',
-        'DBMS',
-        'Operating Systems',
-        'Data Structures'
-      ]
+      trim: true
     },
 
     centralTopic: {

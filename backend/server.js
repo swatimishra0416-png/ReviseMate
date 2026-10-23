@@ -13,6 +13,7 @@ const Flashcard = require('./models/Flashcard');
 const MindMap = require('./models/MindMap');
 const QuizQuestion = require('./models/QuizQuestion');
 const QuizAttempt = require('./models/QuizAttempt');
+const Subject = require('./models/Subject');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -48,7 +49,8 @@ const allowedMindMapSubjects = [
 // NOTE VALIDATION
 // ==================================================
 
-function validateNoteInput(body) {
+
+async function validateNoteInput(body) {
   if (!body || typeof body !== 'object' || Array.isArray(body)) {
     return 'A valid JSON object is required.';
   }
@@ -63,10 +65,7 @@ function validateNoteInput(body) {
     return 'Title cannot exceed 200 characters.';
   }
 
-  if (
-    typeof subject !== 'string' ||
-    !allowedSubjects.includes(subject)
-  ) {
+  if (typeof subject !== 'string' || !subject.trim()) {
     return 'Please select a valid subject.';
   }
 
@@ -76,6 +75,14 @@ function validateNoteInput(body) {
 
   if (content.length > 100000) {
     return 'Study material cannot exceed 100,000 characters.';
+  }
+
+  const subjectExists = await Subject.exists({
+    normalizedName: subject.trim().toLowerCase()
+  });
+
+  if (!subjectExists) {
+    return 'Please select a subject that exists in ReviseMate.';
   }
 
   return null;
@@ -92,6 +99,154 @@ app.get('/', (req, res) => {
       ? 'connected'
       : 'disconnected'
   });
+});
+
+ // ==================================================
+ // SUBJECTS API
+ // ==================================================
+
+// GET: Fetch all subjects
+app.get('/api/subjects', async (req, res) => {
+  try {
+    const subjects = await Subject.find().sort({ name: 1 });
+    res.json(subjects);
+  } catch (error) {
+    console.error('Fetch subjects error:', error.message);
+    res.status(500).json({
+      message: 'Failed to fetch subjects.'
+    });
+  }
+});
+
+// POST: Create a subject
+app.post('/api/subjects', async (req, res) => {
+  const { name } = req.body || {};
+
+  if (
+    typeof name !== 'string' ||
+    !name.trim() ||
+    name.trim().length > 100
+  ) {
+    return res.status(400).json({
+      message: 'Subject name must contain 1–100 characters.'
+    });
+  }
+
+  try {
+    const cleanName = name.trim();
+
+    const subject = await Subject.create({
+      name: cleanName,
+      normalizedName: cleanName.toLowerCase()
+    });
+
+    res.status(201).json(subject);
+  } catch (error) {
+    if (error.code === 11000) {
+      return res.status(409).json({
+        message: 'This subject already exists.'
+      });
+    }
+
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({
+        message: 'Invalid subject data.'
+      });
+    }
+
+    console.error('Create subject error:', error.message);
+    res.status(500).json({
+      message: 'Failed to create subject.'
+    });
+  }
+});
+
+
+ // PUT: Update a subject
+app.put('/api/subjects/:id', async (req, res) => {
+  const { id } = req.params;
+  const { name } = req.body || {};
+
+  if (!mongoose.isValidObjectId(id)) {
+    return res.status(400).json({
+      message: 'Invalid subject ID.'
+    });
+  }
+
+  if (
+    typeof name !== 'string' ||
+    !name.trim() ||
+    name.trim().length > 100
+  ) {
+    return res.status(400).json({
+      message: 'Subject name must contain 1–100 characters.'
+    });
+  }
+
+  try {
+    const cleanName = name.trim();
+
+    const subject = await Subject.findByIdAndUpdate(
+      id,
+      {
+        name: cleanName,
+        normalizedName: cleanName.toLowerCase()
+      },
+      {
+        new: true,
+        runValidators: true
+      }
+    );
+
+    if (!subject) {
+      return res.status(404).json({
+        message: 'Subject not found.'
+      });
+    }
+
+    res.json(subject);
+  } catch (error) {
+    if (error.code === 11000) {
+      return res.status(409).json({
+        message: 'This subject already exists.'
+      });
+    }
+
+    console.error('Update subject error:', error.message);
+    res.status(500).json({
+      message: 'Failed to update subject.'
+    });
+  }
+});
+
+// DELETE: Delete a subject
+app.delete('/api/subjects/:id', async (req, res) => {
+  const { id } = req.params;
+
+  if (!mongoose.isValidObjectId(id)) {
+    return res.status(400).json({
+      message: 'Invalid subject ID.'
+    });
+  }
+
+  try {
+    const subject = await Subject.findByIdAndDelete(id);
+
+    if (!subject) {
+      return res.status(404).json({
+        message: 'Subject not found.'
+      });
+    }
+
+    res.json({
+      message: 'Subject deleted successfully.'
+    });
+  } catch (error) {
+    console.error('Delete subject error:', error.message);
+    res.status(500).json({
+      message: 'Failed to delete subject.'
+    });
+  }
 });
 
 // ==================================================
@@ -139,7 +294,7 @@ app.get('/api/notes/:id', async (req, res) => {
 
 // POST: Create a note
 app.post('/api/notes', async (req, res) => {
-  const validationError = validateNoteInput(req.body);
+  const validationError = await validateNoteInput(req.body);
 
   if (validationError) {
     return res.status(400).json({
@@ -179,8 +334,7 @@ app.put('/api/notes/:id', async (req, res) => {
     });
   }
 
-  const validationError = validateNoteInput(req.body);
-
+const validationError = await validateNoteInput(req.body);
   if (validationError) {
     return res.status(400).json({
       message: validationError
@@ -274,6 +428,7 @@ app.post('/api/flashcards', async (req, res) => {
   try {
     const { question, answer, subject } = req.body || {};
 
+    
     if (
       typeof question !== 'string' ||
       !question.trim() ||
@@ -282,12 +437,15 @@ app.post('/api/flashcards', async (req, res) => {
       !answer.trim() ||
       answer.trim().length > 5000 ||
       typeof subject !== 'string' ||
-      !allowedSubjects.includes(subject)
+      !(await Subject.exists({
+        normalizedName: subject.trim().toLowerCase()
+      }))
     ) {
       return res.status(400).json({
-        message: 'Enter a valid question, answer, and subject.'
+        message: 'Enter a valid question, answer, and existing subject.'
       });
     }
+
 
     const flashcard = await Flashcard.create({
       question: question.trim(),
@@ -315,6 +473,7 @@ app.put('/api/flashcards/:id', async (req, res) => {
 
     const { question, answer, subject } = req.body || {};
 
+    
     if (
       typeof question !== 'string' ||
       !question.trim() ||
@@ -323,12 +482,15 @@ app.put('/api/flashcards/:id', async (req, res) => {
       !answer.trim() ||
       answer.trim().length > 5000 ||
       typeof subject !== 'string' ||
-      !allowedSubjects.includes(subject)
+      !(await Subject.exists({
+        normalizedName: subject.trim().toLowerCase()
+      }))
     ) {
       return res.status(400).json({
-        message: 'Enter a valid question, answer, and subject.'
+        message: 'Enter a valid question, answer, and existing subject.'
       });
     }
+
 
     const flashcard = await Flashcard.findByIdAndUpdate(
       req.params.id,
@@ -450,11 +612,15 @@ app.get('/api/mindmaps/:subject', async (req, res) => {
   try {
     const subject = req.params.subject;
 
-    if (!allowedMindMapSubjects.includes(subject)) {
-      return res.status(400).json({
-        message: 'Invalid subject.'
-      });
-    }
+    if (
+  !(await Subject.exists({
+    normalizedName: subject.trim().toLowerCase()
+  }))
+) {
+  return res.status(400).json({
+    message: 'Invalid subject. Please select an existing subject.'
+  });
+}
 
     const mindMap = await MindMap.findOne({ subject });
 
@@ -480,11 +646,17 @@ app.put('/api/mindmaps/:subject', async (req, res) => {
     const body = req.body || {};
     const { centralTopic, topics } = body;
 
-    if (!allowedMindMapSubjects.includes(subject)) {
+    
+    if (
+      !(await Subject.exists({
+        normalizedName: subject.trim().toLowerCase()
+      }))
+    ) {
       return res.status(400).json({
-        message: 'Invalid subject.'
+        message: 'Invalid subject. Please select an existing subject.'
       });
     }
+
 
     if (
       typeof centralTopic !== 'string' ||
@@ -566,11 +738,17 @@ app.delete('/api/mindmaps/:subject', async (req, res) => {
   try {
     const subject = req.params.subject;
 
-    if (!allowedMindMapSubjects.includes(subject)) {
-      return res.status(400).json({
-        message: 'Invalid subject.'
-      });
-    }
+    
+if (
+  !(await Subject.exists({
+    normalizedName: subject.trim().toLowerCase()
+  }))
+) {
+  return res.status(400).json({
+    message: 'Invalid subject. Please select an existing subject.'
+  });
+}
+
 
     const mindMap = await MindMap.findOneAndDelete({ subject });
 
@@ -605,16 +783,16 @@ app.post('/api/quiz/attempts', async (req, res) => {
   try {
     const { subject, score, totalQuestions } = req.body || {};
 
-    const allowedSubjects = [
-      'Computer Networks',
-      'DBMS',
-      'Operating Systems',
-      'Data Structures'
-    ];
+    const existingSubject = await Subject.findOne({
+      normalizedName:
+        typeof subject === 'string'
+          ? subject.trim().toLowerCase()
+          : ''
+    });
 
-    if (!allowedSubjects.includes(subject)) {
+    if (!existingSubject) {
       return res.status(400).json({
-        message: 'Invalid subject.'
+        message: 'Please select an existing subject.'
       });
     }
 
@@ -631,11 +809,11 @@ app.post('/api/quiz/attempts', async (req, res) => {
     }
 
     const attempt = await QuizAttempt.create({
-      subject,
-      score,
-      totalQuestions,
-      completedAt: new Date()
-    });
+  subject: existingSubject.name,
+  score,
+  totalQuestions,
+  completedAt: new Date()
+});
 
     return res.status(201).json({
       message: 'Quiz attempt saved successfully.',
@@ -656,22 +834,21 @@ app.get('/api/quiz/attempts', async (req, res) => {
     const { subject } = req.query;
     const filter = {};
 
+    
     if (subject) {
-      const allowedSubjects = [
-        'Computer Networks',
-        'DBMS',
-        'Operating Systems',
-        'Data Structures'
-      ];
+      const existingSubject = await Subject.findOne({
+        normalizedName: subject.trim().toLowerCase()
+      });
 
-      if (!allowedSubjects.includes(subject)) {
+      if (!existingSubject) {
         return res.status(400).json({
-          message: 'Invalid subject.'
+          message: 'Invalid subject. Please select an existing subject.'
         });
       }
 
-      filter.subject = subject;
+      filter.subject = existingSubject.name;
     }
+
 
     const attempts = await QuizAttempt.find(filter)
       .sort({ completedAt: -1 })
@@ -699,15 +876,21 @@ app.get('/api/quiz/questions', async (req, res) => {
 
     const filter = {};
 
+    
     if (subject) {
-      if (!allowedSubjects.includes(subject)) {
+      const existingSubject = await Subject.findOne({
+        normalizedName: subject.trim().toLowerCase()
+      });
+
+      if (!existingSubject) {
         return res.status(400).json({
-          message: 'Invalid subject.'
+          message: 'Invalid subject. Please select an existing subject.'
         });
       }
 
-      filter.subject = subject;
+      filter.subject = existingSubject.name;
     }
+
 
     const questions = await QuizQuestion.find(filter)
       .select('-correctAnswer -explanation')
@@ -765,11 +948,20 @@ app.post('/api/quiz/questions', async (req, res) => {
       explanation
     } = req.body || {};
 
-    if (!allowedSubjects.includes(subject)) {
+    
+    const existingSubject = await Subject.findOne({
+      normalizedName:
+        typeof subject === 'string'
+          ? subject.trim().toLowerCase()
+          : ''
+    });
+
+    if (!existingSubject) {
       return res.status(400).json({
-        message: 'Please select a valid subject.'
+        message: 'Please select an existing subject.'
       });
     }
+
 
     if (
       typeof question !== 'string' ||
@@ -817,12 +1009,12 @@ app.post('/api/quiz/questions', async (req, res) => {
     }
 
     const newQuestion = await QuizQuestion.create({
-      subject,
-      question: question.trim(),
-      options: options.map(option => option.trim()),
-      correctAnswer: correctAnswer.trim(),
-      explanation: explanation.trim()
-    });
+  subject: existingSubject.name,
+  question: question.trim(),
+  options: options.map(option => option.trim()),
+  correctAnswer: correctAnswer.trim(),
+  explanation: explanation.trim()
+});
 
     res.status(201).json({
       message: 'Quiz question created successfully.',

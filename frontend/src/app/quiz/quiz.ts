@@ -1,6 +1,7 @@
 
 import { Component, ChangeDetectorRef } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
+import { QuizHistory } from '../quiz-history/quiz-history';
 import {
   QuizService,
   QuizQuestion,
@@ -8,13 +9,21 @@ import {
 } from '../services/quiz.service';
 
 @Component({
-  imports: [],
+  imports: [QuizHistory],
   selector: 'app-quiz',
   styleUrl: './quiz.css',
   templateUrl: './quiz.html',
 })
 export class Quiz {
   subjectName = '';
+  showSubjectSelection = false;
+
+subjects = [
+  'Computer Networks',
+  'DBMS',
+  'Operating Systems',
+  'Data Structures'
+];
 
   questions: QuizQuestion[] = [];
 
@@ -38,16 +47,22 @@ export class Quiz {
   attemptSaveError = '';
 
   constructor(
-    private route: ActivatedRoute,
-    private quizService: QuizService,
-    private cdr: ChangeDetectorRef
-  ) {
-    this.subjectName =
-      this.route.snapshot.paramMap.get('subject') ||
-      'Computer Networks';
+  private route: ActivatedRoute,
+  private router: Router,
+  private quizService: QuizService,
+  private cdr: ChangeDetectorRef
+) {
+  const subject = this.route.snapshot.paramMap.get('subject');
 
+  if (subject) {
+    this.subjectName = subject;
+    this.showSubjectSelection = false;
     this.loadQuestions();
+  } else {
+    this.showSubjectSelection = true;
+    this.loading = false;
   }
+}
 
   get currentQuestion(): QuizQuestion | undefined {
     return this.questions[this.currentQuestionIndex];
@@ -83,7 +98,14 @@ export class Quiz {
       }
     });
   }
+selectSubject(subject: string) {
+  console.log('Selected subject:', subject);
 
+  this.router.navigate(['/quiz', subject]).then((success) => {
+    console.log('Navigation successful:', success);
+    console.log('Current URL:', this.router.url);
+  });
+}
   // Select an answer
   selectAnswer(option: string) {
     if (this.answerSubmitted || this.loadingAnswer) {

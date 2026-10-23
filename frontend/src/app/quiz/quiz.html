@@ -1,131 +1,202 @@
 
 <div class="quiz-container">
 
-  <h1>{{ subjectName }} Quiz</h1>
+  @if (showSubjectSelection) {
+    <h1>Choose Your Quiz</h1>
+    <p class="quiz-subtitle">
+      Select a subject to test your knowledge.
+    </p>
 
-  @if (loading) {
-    <div class="quiz-card">
-      <p>Loading quiz questions...</p>
+    <div class="subject-grid">
+
+      @for (subject of subjects; track subject) {
+        <button
+          class="subject-card"
+          type="button"
+          (click)="selectSubject(subject)">
+
+          <span class="subject-icon">
+            @if (subject === 'Computer Networks') {
+              🌐
+            } @else if (subject === 'DBMS') {
+              🗄️
+            } @else if (subject === 'Operating Systems') {
+              💻
+            } @else {
+              🌳
+            }
+          </span>
+
+          <h2>{{ subject }}</h2>
+          <span>Start Quiz →</span>
+
+        </button>
+      }
+
     </div>
-  } @else if (errorMessage) {
-    <div class="quiz-card">
-      <p>{{ errorMessage }}</p>
 
-      <button class="next-button" (click)="loadQuestions()">
-        Try Again
-      </button>
-    </div>
-  } @else if (!quizFinished && currentQuestion) {
-    <div class="quiz-card">
+  } @else {
 
-      <p class="question-count">
-        Question {{ currentQuestionIndex + 1 }}
-        of {{ questions.length }}
-      </p>
+    <h1>{{ subjectName }} Quiz</h1>
 
-      <h2>{{ currentQuestion.question }}</h2>
+    @if (loading) {
+      <div class="quiz-card">
+        <p>Loading quiz questions...</p>
+      </div>
 
-      <div class="quiz-options">
-        @for (option of currentQuestion.options; track option) {
+    } @else if (errorMessage) {
+      <div class="quiz-card">
+        <p>{{ errorMessage }}</p>
+
+        <button
+          class="next-button"
+          type="button"
+          (click)="loadQuestions()">
+          Try Again
+        </button>
+
+        <button
+          class="next-button"
+          type="button"
+          (click)="showSubjectSelection = true">
+          Choose Another Subject
+        </button>
+      </div>
+
+    } @else if (!quizFinished && currentQuestion) {
+      <div class="quiz-card">
+
+        <p class="question-count">
+          Question {{ currentQuestionIndex + 1 }}
+          of {{ questions.length }}
+        </p>
+
+        <h2>{{ currentQuestion.question }}</h2>
+
+        <div class="quiz-options">
+          @for (option of currentQuestion.options; track option) {
+            <button
+              class="quiz-option"
+              [class.selected]="selectedAnswer === option"
+              [class.correct]="answerSubmitted && option === currentAnswer?.correctAnswer"
+              [class.incorrect]="answerSubmitted && selectedAnswer === option && option !== currentAnswer?.correctAnswer"
+              [disabled]="answerSubmitted || loadingAnswer"
+              type="button"
+              (click)="selectAnswer(option)">
+
+              {{ option }}
+
+            </button>
+          }
+        </div>
+
+        @if (answerError) {
+          <p role="alert">{{ answerError }}</p>
+        }
+
+        @if (answerSubmitted && currentAnswer) {
+          <div class="answer-feedback">
+
+            @if (selectedAnswer === currentAnswer.correctAnswer) {
+              <h3>Correct! 🎉</h3>
+            } @else {
+              <h3>Not quite!</h3>
+
+              <p>
+                Correct answer:
+                <strong>{{ currentAnswer.correctAnswer }}</strong>
+              </p>
+            }
+
+            <p>{{ currentAnswer.explanation }}</p>
+
+          </div>
+        }
+
+        @if (!answerSubmitted) {
           <button
-            class="quiz-option"
-            [class.selected]="selectedAnswer === option"
-            [class.correct]="answerSubmitted && option === currentAnswer?.correctAnswer"
-            [class.incorrect]="answerSubmitted && selectedAnswer === option && option !== currentAnswer?.correctAnswer"
-            [disabled]="answerSubmitted || loadingAnswer"
-            (click)="selectAnswer(option)">
+            class="next-button"
+            type="button"
+            (click)="submitAnswer()"
+            [disabled]="!selectedAnswer || loadingAnswer">
 
-            {{ option }}
+            {{ loadingAnswer ? 'Checking Answer...' : 'Submit Answer' }}
+
+          </button>
+        } @else {
+          <button
+            class="next-button"
+            type="button"
+            (click)="nextQuestion()">
+
+            {{ currentQuestionIndex === questions.length - 1
+              ? 'View Results'
+              : 'Next Question' }}
 
           </button>
         }
+
+        <button
+          class="next-button"
+          type="button"
+          (click)="showSubjectSelection = true">
+          Choose Another Subject
+        </button>
+
       </div>
 
-      @if (answerError) {
-        <p>{{ answerError }}</p>
-      }
+    } @else if (quizFinished) {
+      <div class="quiz-result">
 
-      @if (answerSubmitted && currentAnswer) {
-        <div class="answer-feedback">
+        <h2>Quiz Completed! 🎉</h2>
 
-          @if (selectedAnswer === currentAnswer.correctAnswer) {
-            <h3>Correct! 🎉</h3>
-          } @else {
-            <h3>Not quite!</h3>
+        <p class="score">
+          Your Score: {{ score }} / {{ questions.length }}
+        </p>
 
-            <p>
-              Correct answer:
-              <strong>{{ currentAnswer.correctAnswer }}</strong>
-            </p>
-          }
+        <p>
+          You answered {{ score }} out of {{ questions.length }}
+          questions correctly.
+        </p>
 
-          <p>{{ currentAnswer.explanation }}</p>
+        @if (savingAttempt) {
+          <p role="status">Saving your quiz result...</p>
+        } @else if (attemptSaved) {
+          <p role="status">✅ Your quiz result has been saved!</p>
+        } @else if (attemptSaveError) {
+          <p role="alert">{{ attemptSaveError }}</p>
 
-        </div>
-      }
-
-      @if (!answerSubmitted) {
-        <button
-          class="next-button"
-          (click)="submitAnswer()"
-          [disabled]="!selectedAnswer || loadingAnswer">
-
-          {{ loadingAnswer ? 'Checking Answer...' : 'Submit Answer' }}
-
-        </button>
-      } @else {
-        <button
-          class="next-button"
-          (click)="nextQuestion()">
-
-          {{ currentQuestionIndex === questions.length - 1
-            ? 'View Results'
-            : 'Next Question' }}
-
-        </button>
-      }
-
-    </div>
-  } @else if (quizFinished) {
-    <div class="quiz-result">
-
-      <h2>Quiz Completed!</h2>
-
-      <p class="score">
-        Your Score: {{ score }} / {{ questions.length }}
-      </p>
-
-      <p>
-        You answered {{ score }} out of {{ questions.length }}
-        questions correctly.
-      </p>
-
-      @if (savingAttempt) {
-        <p>Saving your result...</p>
-      }
-
-      @if (attemptSaved) {
-        <p>✅ Your quiz result has been saved!</p>
-      }
-
-      @if (attemptSaveError) {
-        <p>{{ attemptSaveError }}</p>
+          <button
+            class="next-button"
+            type="button"
+            (click)="saveQuizAttempt()"
+            [disabled]="savingAttempt">
+            Retry Saving
+          </button>
+        }
 
         <button
           class="next-button"
-          (click)="saveQuizAttempt()"
-          [disabled]="savingAttempt">
-
-          {{ savingAttempt ? 'Saving...' : 'Retry Saving' }}
-
+          type="button"
+          (click)="restartQuiz()">
+          Try Again
         </button>
-      }
 
-      <button class="next-button" (click)="restartQuiz()">
-        Try Again
-      </button>
+        <button
+          class="next-button"
+          type="button"
+          (click)="showSubjectSelection = true">
+          Choose Another Subject
+        </button>
 
-    </div>
+      </div>
+    }
   }
 
 </div>
+<section class="quiz-history-section">
+  <h2>Your Quiz History</h2>
+  <p>Review your previous attempts and track your progress.</p>
+
+  <app-quiz-history></app-quiz-history>
+</section>

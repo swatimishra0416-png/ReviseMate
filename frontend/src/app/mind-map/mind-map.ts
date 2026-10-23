@@ -6,8 +6,7 @@ import {
   OnInit
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute } from '@angular/router';
-
+import { ActivatedRoute, Router } from '@angular/router';
 import {
   MindMapService,
   SubjectMindMap
@@ -21,7 +20,14 @@ import {
   styleUrl: './mind-map.css'
 })
 export class MindMap implements OnInit {
-  subjectName = 'Computer Networks';
+  subjectName = '';
+
+subjects = [
+  'Computer Networks',
+  'DBMS',
+  'Operating Systems',
+  'Data Structures'
+];
 
   expandedTopics: string[] = [];
 
@@ -138,18 +144,43 @@ export class MindMap implements OnInit {
   };
 
   constructor(
-    private route: ActivatedRoute,
-    private mindMapService: MindMapService,
-    private cdr: ChangeDetectorRef
-  ) {}
+  private route: ActivatedRoute,
+  private router: Router,
+  private mindMapService: MindMapService,
+  private cdr: ChangeDetectorRef
+) {}
 
-  ngOnInit(): void {
-    this.subjectName =
-      this.route.snapshot.queryParamMap.get('subject') ||
-      'Computer Networks';
+ngOnInit(): void {
+  this.route.queryParamMap.subscribe(params => {
+    const subject =
+      params.get('subject') || 'Computer Networks';
 
-    this.loadMindMap();
+    if (!this.subjects.includes(subject)) {
+      this.message = 'Please select a valid subject.';
+      this.isLoading = false;
+      this.cdr.detectChanges();
+      return;
+    }
+    if (this.subjectName !== subject) {
+      this.subjectName = subject;
+      this.expandedTopics = [];
+      this.selectedTopicTitle = '';
+      this.loadMindMap();
+    }
+  });
+}
+
+changeSubject(subject: string): void {
+  if (!this.subjects.includes(subject)) {
+    return;
   }
+
+  this.router.navigate([], {
+    relativeTo: this.route,
+    queryParams: { subject },
+    queryParamsHandling: 'merge'
+  });
+}
 
   get currentMindMap(): SubjectMindMap | undefined {
     return this.mindMapsBySubject[this.subjectName];

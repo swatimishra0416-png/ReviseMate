@@ -1,13 +1,23 @@
+
 <h1>My Subjects</h1>
 
-<div class="subjects">
-  @for (subject of subjects; track subject.name) {
-  <div class="subject-card">
-    <h2>{{ subject.name }}</h2>
+@if (isLoading) {
+  <p>Loading subjects...</p>
+} @else if (errorMessage) {
+  <p>{{ errorMessage }}</p>
+  <button (click)="loadSubjects()">Try Again</button>
+} @else if (subjects.length === 0) {
+  <p>No subjects yet. Add a subject to get started!</p>
+} @else {
+  <div class="subjects">
+    @for (subject of subjects; track subject._id) {
+      <div class="subject-card">
+        <h2>{{ subject.name }}</h2>
 
-    <p>Progress: {{ subject.progress }}%</p>
-
-    <button (click)="startRevision(subject)">Start Revision</button>
+        <button (click)="startRevision(subject)">
+          Start Revision
+        </button>
+      </div>
+    }
   </div>
 }
-</div>

@@ -14,6 +14,8 @@ const MindMap = require('./models/MindMap');
 const QuizQuestion = require('./models/QuizQuestion');
 const QuizAttempt = require('./models/QuizAttempt');
 const Subject = require('./models/Subject');
+const GeneratedQuiz = require('./models/GeneratedQuiz');
+const { generateQuiz } = require('./services/geminiQuizService');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -1072,6 +1074,142 @@ app.delete('/api/quiz/questions/:id', async (req, res) => {
     });
   }
 });
+
+/* ==================================================
+   AI-GENERATED QUIZZES API
+================================================== */
+
+// POST: Generate and save a quiz from study material
+app.post('/api/ai-quizzes/generate', async (req, res) => {
+  try {
+    const {
+      title,
+      subject,
+      sourceType,
+      sourceName,
+      sourceText,
+      questionCount = 5
+    } = req.body || {};
+
+    // Validate the title
+    if (
+      typeof title !== 'string' ||
+      !title.trim() ||
+      title.trim().length > 200
+    ) {
+      return res.status(400).json({
+        message: 'Enter a title containing 1–200 characters.'
+      });
+    }
+
+    // Validate the subject against MongoDB
+    if (typeof subject !== 'string' || !subject.trim()) {
+      return res.status(400).json({
+        message: 'Please select a subject.'
+      });
+    }
+
+    const existingSubject = await Subject.findOne({
+      normalizedName: subject.trim().toLowerCase()
+    });
+
+    if (!existingSubject) {
+      return res.status(400).json({
+        message: 'Please select an existing subject.'
+      });
+    }
+
+    // Validate the source type
+    const allowedSourceTypes = [
+      'note',
+      'text',
+      'pdf',
+      'docx',
+      'webpage',
+      'youtube'
+    ];
+
+    if (!allowedSourceTypes.includes(sourceType)) {
+      return res.status(400).json({
+        message: 'Select a supported source type.'
+      });
+    }
+
+    // Validate source text
+    if (
+      typeof sourceText !== 'string' ||
+      !sourceText.trim()
+    ) {
+      return res.status(400).json({
+        message: 'Please provide study material to generate a quiz.'
+      });
+    }
+
+    // Generate questions with Gemini
+    const result = await generateQuiz(sourceText, questionCount);
+
+    // Save the generated quiz in MongoDB
+    const savedQuiz = await GeneratedQuiz.create({
+      title: title.trim(),
+      subject: existingSubject.name,
+      sourceType,
+      sourceName:
+        typeof sourceName === 'string'
+          ? sourceName.trim().slice(0, 500)
+          : '',
+      questions: result.questions
+    });
+
+    // Do not send correct answers or explanations before the quiz is taken
+    const safeQuiz = {
+      _id: savedQuiz._id,
+      title: savedQuiz.title,
+      subject: savedQuiz.subject,
+      sourceType: savedQuiz.sourceType,
+      sourceName: savedQuiz.sourceName,
+      questions: savedQuiz.questions.map(question => ({
+        _id: question._id,
+        question: question.question,
+        options: question.options
+      })),
+      createdAt: savedQuiz.createdAt
+    };
+
+    return res.status(201).json({
+      message: 'AI quiz generated and saved successfully.',
+      quiz: safeQuiz
+    });
+  } catch (error) {
+    console.error('AI quiz generation error:', error.message);
+
+    if (
+      error.message.includes('GEMINI_API_KEY is missing')
+    ) {
+      return res.status(500).json({
+        message: 'Gemini API key is not configured on the backend.'
+      });
+    }
+
+    if (
+      error.message.includes('Question count') ||
+      error.message.includes('study material') ||
+      error.message.includes('requested number of questions') ||
+      error.message.includes('invalid question') ||
+      error.message.includes('correct answer does not match') ||
+      error.message.includes('invalid JSON response') ||
+      error.message.includes('empty response')
+    ) {
+      return res.status(400).json({
+        message: error.message
+      });
+    }
+
+    return res.status(500).json({
+      message: 'Could not generate the AI quiz. Please try again.'
+    });
+  }
+});
+
 
 app.use((error, req, res, next) => {
   if (error.type === 'entity.parse.failed') {

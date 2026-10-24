@@ -14,15 +14,22 @@
   <div class="subject-filter">
     <label for="subjectFilter">Choose a subject</label>
 
-    <select
-      id="subjectFilter"
-      [ngModel]="selectedSubject"
-      (ngModelChange)="changeSubject($event)"
-    >
-      @for (subject of subjects; track subject) {
-        <option [value]="subject">{{ subject }}</option>
-      }
-    </select>
+    @if (isLoadingSubjects) {
+      <p>Loading subjects...</p>
+    } @else if (subjects.length === 0) {
+      <p>No subjects available. Add a subject on the Subjects page first.</p>
+      <button type="button" (click)="loadSubjects()">Try Again</button>
+    } @else {
+      <select
+        id="subjectFilter"
+        [ngModel]="selectedSubject"
+        (ngModelChange)="changeSubject($event)"
+      >
+        @for (subject of subjects; track subject) {
+          <option [value]="subject">{{ subject }}</option>
+        }
+      </select>
+    }
   </div>
 
   @if (errorMessage) {
@@ -37,29 +44,30 @@
     <p class="status-message">Loading your flashcards...</p>
   } @else {
     <section class="progress-section">
-  <div class="progress-heading">
-    <div>
-      <h2>Revision progress</h2>
-      <p>{{ knownCount }} of {{ filteredFlashcards.length }} cards mastered</p>
-    </div>
+      <div class="progress-heading">
+        <div>
+          <h2>Revision progress</h2>
+          <p>{{ knownCount }} of {{ filteredFlashcards.length }} cards mastered</p>
+        </div>
 
-    <strong>{{ progressPercentage }}%</strong>
-  </div>
+        <strong>{{ progressPercentage }}%</strong>
+      </div>
 
-  <div
-    class="progress-track"
-    role="progressbar"
-    [attr.aria-valuenow]="progressPercentage"
-    aria-valuemin="0"
-    aria-valuemax="100"
-    aria-label="Flashcard revision progress"
-  >
-    <div
-      class="progress-fill"
-      [style.width.%]="progressPercentage"
-    ></div>
-  </div>
-</section>
+      <div
+        class="progress-track"
+        role="progressbar"
+        [attr.aria-valuenow]="progressPercentage"
+        aria-valuemin="0"
+        aria-valuemax="100"
+        aria-label="Flashcard revision progress"
+      >
+        <div
+          class="progress-fill"
+          [style.width.%]="progressPercentage"
+        ></div>
+      </div>
+    </section>
+
     <section class="study-section">
       @if (currentCard; as card) {
         <p class="card-counter">
@@ -111,31 +119,33 @@
             Next →
           </button>
         </div>
+
         <div class="status-actions">
-  <button
-    type="button"
-    class="needs-revision-button"
-    (click)="markStatus('needs-revision')"
-    [disabled]="updatingStatus"
-  >
-    ↻ Needs revision
-  </button>
+          <button
+            type="button"
+            class="needs-revision-button"
+            (click)="markStatus('needs-revision')"
+            [disabled]="updatingStatus"
+          >
+            ↻ Needs revision
+          </button>
 
-  <button
-    type="button"
-    class="known-button"
-    (click)="markStatus('known')"
-    [disabled]="updatingStatus"
-  >
-    ✓ Know it
-  </button>
-</div>
+          <button
+            type="button"
+            class="known-button"
+            (click)="markStatus('known')"
+            [disabled]="updatingStatus"
+          >
+            ✓ Know it
+          </button>
+        </div>
 
-@if (card.status === 'known') {
-  <p class="status-label known-label">You know this card!</p>
-} @else {
-  <p class="status-label revision-label">Keep practising this card.</p>
-}
+        @if (card.status === 'known') {
+          <p class="status-label known-label">You know this card!</p>
+        } @else {
+          <p class="status-label revision-label">Keep practising this card.</p>
+        }
+
         <div class="card-actions">
           <button
             type="button"
@@ -157,7 +167,7 @@
         <div class="empty-state">
           <h2>No flashcards yet</h2>
           <p>
-            Create your first {{ selectedSubject }} flashcard using the form below.
+            Create your first {{ selectedSubject || 'subject' }} flashcard using the form below.
           </p>
         </div>
       }
@@ -168,66 +178,72 @@
     <h2>{{ editingId ? 'Edit Flashcard' : 'Create a Flashcard' }}</h2>
     <p>Save questions and answers for future revision.</p>
 
-    <form (ngSubmit)="saveFlashcard()">
-      <label for="formSubject">Subject</label>
-      <select
-        id="formSubject"
-        name="formSubject"
-        [(ngModel)]="formSubject"
-        required
-      >
-        @for (subject of subjects; track subject) {
-          <option [value]="subject">{{ subject }}</option>
-        }
-      </select>
-
-      <label for="question">Question</label>
-      <textarea
-        id="question"
-        name="question"
-        [(ngModel)]="question"
-        placeholder="Example: What is the purpose of DNS?"
-        rows="3"
-        maxlength="1000"
-        required
-      ></textarea>
-
-      <label for="answer">Answer</label>
-      <textarea
-        id="answer"
-        name="answer"
-        [(ngModel)]="answer"
-        placeholder="Write a clear answer..."
-        rows="4"
-        maxlength="5000"
-        required
-      ></textarea>
-
-      <div class="form-actions">
-        <button
-          type="submit"
-          class="primary-button"
-          [disabled]="saving"
+    @if (isLoadingSubjects) {
+      <p>Loading subjects...</p>
+    } @else if (subjects.length === 0) {
+      <p>Add a subject before creating flashcards.</p>
+    } @else {
+      <form (ngSubmit)="saveFlashcard()">
+        <label for="formSubject">Subject</label>
+        <select
+          id="formSubject"
+          name="formSubject"
+          [(ngModel)]="formSubject"
+          required
         >
-          {{
-            saving
-              ? 'Saving...'
-              : editingId
-                ? 'Update Flashcard'
-                : 'Save Flashcard'
-          }}
-        </button>
+          @for (subject of subjects; track subject) {
+            <option [value]="subject">{{ subject }}</option>
+          }
+        </select>
 
-        @if (editingId) {
+        <label for="question">Question</label>
+        <textarea
+          id="question"
+          name="question"
+          [(ngModel)]="question"
+          placeholder="Example: What is the purpose of DNS?"
+          rows="3"
+          maxlength="1000"
+          required
+        ></textarea>
+
+        <label for="answer">Answer</label>
+        <textarea
+          id="answer"
+          name="answer"
+          [(ngModel)]="answer"
+          placeholder="Write a clear answer..."
+          rows="4"
+          maxlength="5000"
+          required
+        ></textarea>
+
+        <div class="form-actions">
           <button
-            type="button"
-            class="secondary-button"
-            (click)="cancelEdit()"
+            type="submit"
+            class="primary-button"
+            [disabled]="saving || isLoadingSubjects || subjects.length === 0"
           >
-            Cancel
+            {{
+              saving
+                ? 'Saving...'
+                : editingId
+                  ? 'Update Flashcard'
+                  : 'Save Flashcard'
+            }}
           </button>
-        }
-      </div>
-    </form>
+
+          @if (editingId) {
+            <button
+              type="button"
+              class="secondary-button"
+              (click)="cancelEdit()"
+            >
+              Cancel
+            </button>
+          }
+        </div>
+      </form>
+    }
   </section>
 </div>

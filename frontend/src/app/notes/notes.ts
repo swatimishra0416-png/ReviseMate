@@ -16,6 +16,7 @@ interface Subject {
 
 @Component({
   selector: 'app-notes',
+  standalone: true,
   imports: [FormsModule],
   templateUrl: './notes.html',
   styleUrl: './notes.css'
@@ -27,13 +28,17 @@ export class Notes implements OnInit {
   studyMaterial = '';
 
   subjects: string[] = [];
-
   savedMaterials: StudyMaterial[] = [];
 
   message = '';
   editingId: string | null = null;
+
   isLoading = false;
   isLoadingSubjects = true;
+
+  // Search and filter
+  searchText = '';
+  filterSubject = '';
 
   constructor(
     private notesService: NotesService,
@@ -46,7 +51,7 @@ export class Notes implements OnInit {
     this.loadMaterials();
   }
 
-  // Load subjects dynamically from MongoDB through the backend
+  // Fetch subjects from the backend
   loadSubjects(): void {
     this.isLoadingSubjects = true;
 
@@ -71,7 +76,7 @@ export class Notes implements OnInit {
       });
   }
 
-  // Load saved notes from MongoDB through the backend
+  // Fetch saved notes from the backend
   loadMaterials(): void {
     this.isLoading = true;
     this.cdr.markForCheck();
@@ -80,20 +85,42 @@ export class Notes implements OnInit {
       next: (materials) => {
         this.savedMaterials = materials;
         this.isLoading = false;
-
         console.log('Notes received from API:', materials.length);
         this.cdr.detectChanges();
       },
       error: (error) => {
         console.error('Error loading notes:', error);
-
-        this.message =
-          'Could not load notes. Check that the backend is running.';
-
+        this.message = 'Could not load notes. Check that the backend is running.';
         this.isLoading = false;
         this.cdr.detectChanges();
       }
     });
+  }
+
+  // Search by title or content and filter by subject
+  get filteredMaterials(): StudyMaterial[] {
+    const query = this.searchText.trim().toLowerCase();
+
+    return this.savedMaterials.filter((material) => {
+      const title = (material.title || '').toLowerCase();
+      const content = (material.content || '').toLowerCase();
+
+      const matchesSearch =
+        !query ||
+        title.includes(query) ||
+        content.includes(query);
+
+      const matchesSubject =
+        !this.filterSubject ||
+        material.subject === this.filterSubject;
+
+      return matchesSearch && matchesSubject;
+    });
+  }
+
+  clearFilters(): void {
+    this.searchText = '';
+    this.filterSubject = '';
   }
 
   // Create a new note or update an existing one
@@ -132,6 +159,7 @@ export class Notes implements OnInit {
         error: (error) => {
           console.error('Error updating note:', error);
           this.message = error.error?.message || 'Could not update study material.';
+          this.cdr.detectChanges();
         }
       });
     } else {
@@ -144,12 +172,13 @@ export class Notes implements OnInit {
         error: (error) => {
           console.error('Error saving note:', error);
           this.message = error.error?.message || 'Could not save study material.';
+          this.cdr.detectChanges();
         }
       });
     }
   }
 
-  // Fill the form with an existing note
+  // Load an existing note into the form
   editMaterial(material: StudyMaterial): void {
     if (!material._id) {
       this.message = 'Could not identify this note.';
@@ -165,10 +194,14 @@ export class Notes implements OnInit {
     this.message = 'Editing your study material.';
   }
 
-  // Delete a note from MongoDB
+  // Delete a note
   deleteMaterial(material: StudyMaterial): void {
     if (!material._id) {
       this.message = 'Could not identify this note.';
+      return;
+    }
+
+    if (!window.confirm(`Delete "${material.title}"? This cannot be undone.`)) {
       return;
     }
 
@@ -183,10 +216,12 @@ export class Notes implements OnInit {
         }
 
         this.message = 'Study material deleted successfully!';
+        this.cdr.detectChanges();
       },
       error: (error) => {
         console.error('Error deleting note:', error);
         this.message = error.error?.message || 'Could not delete study material.';
+        this.cdr.detectChanges();
       }
     });
   }
@@ -203,7 +238,7 @@ export class Notes implements OnInit {
     this.editingId = null;
   }
 
-  // Read a .txt file and put its contents into the form
+  // Read a .txt file into the study material form
   async onFileSelected(event: Event): Promise<void> {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
@@ -222,7 +257,6 @@ export class Notes implements OnInit {
       this.studyMaterial = await file.text();
       this.materialTitle = file.name.replace(/\.txt$/i, '');
       this.selectedFileName = file.name;
-
       this.message = 'File loaded successfully! You can now save your study material.';
       input.value = '';
     } catch (error) {

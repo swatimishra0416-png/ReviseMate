@@ -1,21 +1,27 @@
 
 <div class="mind-map-container">
-<div class="subject-selector">
-  <label for="mindMapSubject">Choose a subject:</label>
+  <div class="subject-selector">
+    <label for="mindMapSubject">Choose a subject:</label>
 
-  <select
-    id="mindMapSubject"
-    [ngModel]="subjectName"
-    (ngModelChange)="changeSubject($event)"
-    name="mindMapSubject"
-  >
-    @for (subject of subjects; track subject) {
-      <option [value]="subject">
-        {{ subject }}
-      </option>
+    @if (isLoadingSubjects) {
+      <p>Loading subjects...</p>
+    } @else if (subjects.length === 0) {
+      <p>No subjects available. Add a subject first.</p>
+      <button type="button" (click)="loadSubjects()">Try Again</button>
+    } @else {
+      <select
+        id="mindMapSubject"
+        [ngModel]="subjectName"
+        (ngModelChange)="changeSubject($event)"
+        name="mindMapSubject"
+      >
+        @for (subject of subjects; track subject) {
+          <option [value]="subject">{{ subject }}</option>
+        }
+      </select>
     }
-  </select>
-</div>
+  </div>
+
   @if (isLoading) {
     <p>Loading your mind map...</p>
   } @else {
@@ -38,8 +44,12 @@
 
   @if (currentMindMap; as mindMap) {
     <div class="mind-map-controls">
-      <button type="button" (click)="expandAll()">Expand All</button>
-      <button type="button" (click)="collapseAll()">Collapse All</button>
+      <button type="button" (click)="expandAll()" [disabled]="isLoading || isSaving">
+        Expand All
+      </button>
+      <button type="button" (click)="collapseAll()" [disabled]="isLoading || isSaving">
+        Collapse All
+      </button>
     </div>
 
     <section class="editor-panel">
@@ -52,9 +62,12 @@
           placeholder="Example: Network Security"
           maxlength="100"
           required
+          [disabled]="isLoading || isSaving"
         />
 
-        <button type="submit">Add Topic</button>
+        <button type="submit" [disabled]="isLoading || isSaving">
+          Add Topic
+        </button>
       </form>
 
       <h2>Add a subtopic</h2>
@@ -64,6 +77,7 @@
           name="selectedTopicTitle"
           [(ngModel)]="selectedTopicTitle"
           required
+          [disabled]="isLoading || isSaving || mindMap.topics.length === 0"
         >
           <option value="">Select a parent topic</option>
 
@@ -78,12 +92,16 @@
           placeholder="Example: Three-way handshake"
           maxlength="150"
           required
+          [disabled]="isLoading || isSaving || mindMap.topics.length === 0"
         />
 
-        <button type="submit">Add Subtopic</button>
+        <button
+          type="submit"
+          [disabled]="isLoading || isSaving || mindMap.topics.length === 0"
+        >
+          Add Subtopic
+        </button>
       </form>
-
-      
     </section>
 
     <div class="mind-map">
@@ -100,6 +118,7 @@
                 class="topic-node"
                 (click)="toggleTopic(topic.title)"
                 [attr.aria-expanded]="expandedTopics.includes(topic.title)"
+                [disabled]="isLoading || isSaving"
               >
                 {{ topic.title }}
                 {{ expandedTopics.includes(topic.title) ? '−' : '+' }}
@@ -110,6 +129,7 @@
                 class="delete-button"
                 (click)="deleteTopic(topic.title)"
                 [attr.aria-label]="'Delete topic ' + topic.title"
+                [disabled]="isLoading || isSaving"
               >
                 ×
               </button>
@@ -126,6 +146,7 @@
                       class="delete-subtopic"
                       (click)="deleteSubtopic(topic.title, subtopic)"
                       [attr.aria-label]="'Delete subtopic ' + subtopic"
+                      [disabled]="isLoading || isSaving"
                     >
                       ×
                     </button>
@@ -143,7 +164,7 @@
         }
       </div>
     </div>
-  } @else {
+  } @else if (!isLoading && !isLoadingSubjects && subjectName) {
     <p>No mind map is available for {{ subjectName }} yet.</p>
   }
 </div>

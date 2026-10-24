@@ -24,52 +24,127 @@
     }
 
     <section class="stats-grid">
-      <article class="stat-card">
+
+      <!-- Saved Notes -->
+      <article
+        class="stat-card clickable-card"
+        role="link"
+        tabindex="0"
+        (click)="navigateTo('/notes')"
+        (keydown.enter)="navigateTo('/notes')"
+        (keydown.space)="navigateTo('/notes'); $event.preventDefault()"
+        aria-label="Open Saved Notes"
+      >
         <div class="stat-icon notes-icon">📝</div>
         <p class="stat-label">Saved Notes</p>
         <h2>{{ totalNotes }}</h2>
         <p class="stat-description">Notes stored in your account</p>
       </article>
 
-      <article class="stat-card">
+      <!-- My Subjects -->
+      <article
+        class="stat-card clickable-card"
+        role="link"
+        tabindex="0"
+        (click)="navigateTo('/subjects')"
+        (keydown.enter)="navigateTo('/subjects')"
+        (keydown.space)="navigateTo('/subjects'); $event.preventDefault()"
+        aria-label="Open My Subjects"
+      >
+        <div class="stat-icon notes-icon">📚</div>
+        <p class="stat-label">My Subjects</p>
+        <h2>{{ totalSubjects }}</h2>
+        <p class="stat-description">Subjects available for revision</p>
+      </article>
+
+      <!-- Total Flashcards -->
+      <article
+        class="stat-card clickable-card"
+        role="link"
+        tabindex="0"
+        (click)="navigateTo('/flashcards')"
+        (keydown.enter)="navigateTo('/flashcards')"
+        (keydown.space)="navigateTo('/flashcards'); $event.preventDefault()"
+        aria-label="Open Total Flashcards"
+      >
         <div class="stat-icon cards-icon">🗂️</div>
         <p class="stat-label">Total Flashcards</p>
         <h2>{{ totalFlashcards }}</h2>
         <p class="stat-description">Cards ready for revision</p>
       </article>
 
-      <article class="stat-card">
+      <!-- Cards Mastered -->
+      <article
+        class="stat-card clickable-card"
+        role="link"
+        tabindex="0"
+        (click)="navigateTo('/flashcards')"
+        (keydown.enter)="navigateTo('/flashcards')"
+        (keydown.space)="navigateTo('/flashcards'); $event.preventDefault()"
+        aria-label="Open mastered flashcards"
+      >
         <div class="stat-icon mastered-icon">✅</div>
         <p class="stat-label">Cards Mastered</p>
         <h2>{{ masteredFlashcards }}</h2>
         <p class="stat-description">Cards marked as Know it</p>
       </article>
 
-      <article class="stat-card">
+      <!-- Revision Progress -->
+      <article
+        class="stat-card clickable-card"
+        role="link"
+        tabindex="0"
+        (click)="navigateTo('/flashcards')"
+        (keydown.enter)="navigateTo('/flashcards')"
+        (keydown.space)="navigateTo('/flashcards'); $event.preventDefault()"
+        aria-label="Open revision progress"
+      >
         <div class="stat-icon progress-icon">📈</div>
         <p class="stat-label">Revision Progress</p>
         <h2>{{ revisionProgress }}%</h2>
+
         <div class="progress-track">
           <div
             class="progress-fill"
             [style.width.%]="revisionProgress"
           ></div>
         </div>
+
         <p class="stat-description">Across all subjects</p>
       </article>
-      <article class="stat-card">
-  <div class="stat-icon progress-icon">🧠</div>
-  <p class="stat-label">Quiz Attempts</p>
-  <h2>{{ totalQuizAttempts }}</h2>
-  <p class="stat-description">Completed quizzes</p>
-</article>
 
-<article class="stat-card">
-  <div class="stat-icon mastered-icon">🎯</div>
-  <p class="stat-label">Average Quiz Score</p>
-  <h2>{{ averageQuizScore }}%</h2>
-  <p class="stat-description">Across all quiz attempts</p>
-</article>
+      <!-- Quiz Attempts -->
+      <article
+        class="stat-card clickable-card"
+        role="link"
+        tabindex="0"
+        (click)="navigateTo('/quiz')"
+        (keydown.enter)="navigateTo('/quiz')"
+        (keydown.space)="navigateTo('/quiz'); $event.preventDefault()"
+        aria-label="Open Quiz"
+      >
+        <div class="stat-icon progress-icon">🧠</div>
+        <p class="stat-label">Quiz Attempts</p>
+        <h2>{{ totalQuizAttempts }}</h2>
+        <p class="stat-description">Completed quizzes</p>
+      </article>
+
+      <!-- Average Quiz Score -->
+      <article
+        class="stat-card clickable-card"
+        role="link"
+        tabindex="0"
+        (click)="navigateTo('/quiz')"
+        (keydown.enter)="navigateTo('/quiz')"
+        (keydown.space)="navigateTo('/quiz'); $event.preventDefault()"
+        aria-label="Open Quiz"
+      >
+        <div class="stat-icon mastered-icon">🎯</div>
+        <p class="stat-label">Average Quiz Score</p>
+        <h2>{{ averageQuizScore }}%</h2>
+        <p class="stat-description">Across all quiz attempts</p>
+      </article>
+
     </section>
   }
 </div>

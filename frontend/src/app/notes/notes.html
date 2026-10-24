@@ -38,7 +38,6 @@
       accept=".txt,text/plain"
       (change)="onFileSelected($event)"
     />
-
     <p class="uploaded-file">
       Uploaded filename: {{ selectedFileName || 'No file loaded yet' }}
     </p>
@@ -80,12 +79,42 @@
 <div class="saved-materials">
   <h2>My Saved Materials</h2>
 
+  <!-- Search and subject filters -->
+  <div class="notes-filters">
+    <input
+      type="search"
+      placeholder="Search by title or content..."
+      aria-label="Search notes by title or content"
+      [(ngModel)]="searchText"
+    />
+
+    <select
+      aria-label="Filter notes by subject"
+      [(ngModel)]="filterSubject"
+    >
+      <option value="">All Subjects</option>
+      @for (subject of subjects; track subject) {
+        <option [value]="subject">{{ subject }}</option>
+      }
+    </select>
+
+    <button type="button" class="clear-filters-button" (click)="clearFilters()">
+      Clear Filters
+    </button>
+  </div>
+
   @if (isLoading) {
     <p>Loading your saved materials...</p>
   } @else if (savedMaterials.length === 0) {
     <p>No saved materials yet. Create your first note above!</p>
+  } @else if (filteredMaterials.length === 0) {
+    <p>No matching notes found. Try another search or clear the filters.</p>
   } @else {
-    @for (material of savedMaterials; track material._id) {
+    <p class="results-count">
+      Showing {{ filteredMaterials.length }} of {{ savedMaterials.length }} notes
+    </p>
+
+    @for (material of filteredMaterials; track material._id) {
       <div class="material-preview">
         <h3>{{ material.title }}</h3>
 

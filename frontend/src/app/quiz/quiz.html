@@ -1,49 +1,61 @@
 
 <div class="quiz-container">
-
   @if (showSubjectSelection) {
     <h1>Choose Your Quiz</h1>
     <p class="quiz-subtitle">
       Select a subject to test your knowledge.
     </p>
 
-    <div class="subject-grid">
+    @if (isLoadingSubjects) {
+      <p>Loading subjects...</p>
+    } @else if (subjects.length === 0) {
+      <p>No subjects available. Add a subject to get started.</p>
+      <button
+        class="next-button"
+        type="button"
+        (click)="loadSubjects()"
+      >
+        Try Again
+      </button>
+    } @else {
+      <div class="subject-grid">
+        @for (subject of subjects; track subject) {
+          <button
+            class="subject-card"
+            type="button"
+            (click)="selectSubject(subject)"
+          >
+            <span class="subject-icon">
+              @if (subject === 'Computer Networks') {
+                🌐
+              } @else if (subject === 'DBMS') {
+                🗄️
+              } @else if (subject === 'Operating Systems') {
+                💻
+              } @else if (subject === 'Data Structures') {
+                🌳
+              } @else {
+                📚
+              }
+            </span>
 
-      @for (subject of subjects; track subject) {
-        <button
-          class="subject-card"
-          type="button"
-          (click)="selectSubject(subject)">
+            <h2>{{ subject }}</h2>
+            <span>Start Quiz →</span>
+          </button>
+        }
+      </div>
+    }
 
-          <span class="subject-icon">
-            @if (subject === 'Computer Networks') {
-              🌐
-            } @else if (subject === 'DBMS') {
-              🗄️
-            } @else if (subject === 'Operating Systems') {
-              💻
-            } @else {
-              🌳
-            }
-          </span>
-
-          <h2>{{ subject }}</h2>
-          <span>Start Quiz →</span>
-
-        </button>
-      }
-
-    </div>
-
+    @if (errorMessage) {
+      <p role="alert">{{ errorMessage }}</p>
+    }
   } @else {
-
     <h1>{{ subjectName }} Quiz</h1>
 
     @if (loading) {
       <div class="quiz-card">
         <p>Loading quiz questions...</p>
       </div>
-
     } @else if (errorMessage) {
       <div class="quiz-card">
         <p>{{ errorMessage }}</p>
@@ -51,21 +63,21 @@
         <button
           class="next-button"
           type="button"
-          (click)="loadQuestions()">
+          (click)="loadQuestions()"
+        >
           Try Again
         </button>
 
         <button
           class="next-button"
           type="button"
-          (click)="showSubjectSelection = true">
+          (click)="chooseAnotherSubject()"
+        >
           Choose Another Subject
         </button>
       </div>
-
     } @else if (!quizFinished && currentQuestion) {
       <div class="quiz-card">
-
         <p class="question-count">
           Question {{ currentQuestionIndex + 1 }}
           of {{ questions.length }}
@@ -82,10 +94,9 @@
               [class.incorrect]="answerSubmitted && selectedAnswer === option && option !== currentAnswer?.correctAnswer"
               [disabled]="answerSubmitted || loadingAnswer"
               type="button"
-              (click)="selectAnswer(option)">
-
+              (click)="selectAnswer(option)"
+            >
               {{ option }}
-
             </button>
           }
         </div>
@@ -96,12 +107,10 @@
 
         @if (answerSubmitted && currentAnswer) {
           <div class="answer-feedback">
-
             @if (selectedAnswer === currentAnswer.correctAnswer) {
               <h3>Correct! 🎉</h3>
             } @else {
               <h3>Not quite!</h3>
-
               <p>
                 Correct answer:
                 <strong>{{ currentAnswer.correctAnswer }}</strong>
@@ -109,7 +118,6 @@
             }
 
             <p>{{ currentAnswer.explanation }}</p>
-
           </div>
         }
 
@@ -118,36 +126,34 @@
             class="next-button"
             type="button"
             (click)="submitAnswer()"
-            [disabled]="!selectedAnswer || loadingAnswer">
-
+            [disabled]="!selectedAnswer || loadingAnswer"
+          >
             {{ loadingAnswer ? 'Checking Answer...' : 'Submit Answer' }}
-
           </button>
         } @else {
           <button
             class="next-button"
             type="button"
-            (click)="nextQuestion()">
-
-            {{ currentQuestionIndex === questions.length - 1
-              ? 'View Results'
-              : 'Next Question' }}
-
+            (click)="nextQuestion()"
+          >
+            {{
+              currentQuestionIndex === questions.length - 1
+                ? 'View Results'
+                : 'Next Question'
+            }}
           </button>
         }
 
         <button
           class="next-button"
           type="button"
-          (click)="showSubjectSelection = true">
+          (click)="chooseAnotherSubject()"
+        >
           Choose Another Subject
         </button>
-
       </div>
-
     } @else if (quizFinished) {
       <div class="quiz-result">
-
         <h2>Quiz Completed! 🎉</h2>
 
         <p class="score">
@@ -170,7 +176,8 @@
             class="next-button"
             type="button"
             (click)="saveQuizAttempt()"
-            [disabled]="savingAttempt">
+            [disabled]="savingAttempt"
+          >
             Retry Saving
           </button>
         }
@@ -178,22 +185,23 @@
         <button
           class="next-button"
           type="button"
-          (click)="restartQuiz()">
+          (click)="restartQuiz()"
+        >
           Try Again
         </button>
 
         <button
           class="next-button"
           type="button"
-          (click)="showSubjectSelection = true">
+          (click)="chooseAnotherSubject()"
+        >
           Choose Another Subject
         </button>
-
       </div>
     }
   }
-
 </div>
+
 <section class="quiz-history-section">
   <h2>Your Quiz History</h2>
   <p>Review your previous attempts and track your progress.</p>

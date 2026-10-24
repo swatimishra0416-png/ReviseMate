@@ -6,11 +6,19 @@ import {
   OnInit
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { HttpClient } from '@angular/common/http';
 import { ActivatedRoute, Router } from '@angular/router';
+
 import {
   MindMapService,
   SubjectMindMap
 } from '../services/mind-map.service';
+
+interface Subject {
+  _id: string;
+  name: string;
+  normalizedName: string;
+}
 
 @Component({
   selector: 'app-mind-map',
@@ -21,13 +29,10 @@ import {
 })
 export class MindMap implements OnInit {
   subjectName = '';
+  subjects: string[] = [];
 
-subjects = [
-  'Computer Networks',
-  'DBMS',
-  'Operating Systems',
-  'Data Structures'
-];
+  isLoadingSubjects = true;
+  private subjectsLoaded = false;
 
   expandedTopics: string[] = [];
 
@@ -39,7 +44,7 @@ subjects = [
   isLoading = true;
   isSaving = false;
 
-  // Existing sample maps are preserved as initial data.
+  // Preserve the existing sample maps for the original subjects.
   mindMapsBySubject: { [subject: string]: SubjectMindMap } = {
     'Computer Networks': {
       subject: 'Computer Networks',
@@ -144,55 +149,124 @@ subjects = [
   };
 
   constructor(
-  private route: ActivatedRoute,
-  private router: Router,
-  private mindMapService: MindMapService,
-  private cdr: ChangeDetectorRef
-) {}
+    private route: ActivatedRoute,
+    private router: Router,
+    private mindMapService: MindMapService,
+    private cdr: ChangeDetectorRef,
+    private http: HttpClient
+  ) {}
 
-ngOnInit(): void {
-  this.route.queryParamMap.subscribe(params => {
-    const subject =
-      params.get('subject') || 'Computer Networks';
+  ngOnInit(): void {
+    // Load available subjects first.
+    this.loadSubjects();
 
-    if (!this.subjects.includes(subject)) {
-      this.message = 'Please select a valid subject.';
-      this.isLoading = false;
-      this.cdr.detectChanges();
-      return;
-    }
-    if (this.subjectName !== subject) {
-      this.subjectName = subject;
-      this.expandedTopics = [];
-      this.selectedTopicTitle = '';
-      this.loadMindMap();
-    }
-  });
-}
+    // Respond to subject changes in the URL.
+    this.route.queryParamMap.subscribe(params => {
+      if (!this.subjectsLoaded) {
+        return;
+      }
 
-changeSubject(subject: string): void {
-  if (!this.subjects.includes(subject)) {
-    return;
+      const requestedSubject = params.get('subject');
+
+      if (
+        requestedSubject &&
+        this.subjects.includes(requestedSubject) &&
+        requestedSubject !== this.subjectName
+      ) {
+        this.subjectName = requestedSubject;
+        this.resetTopicSelection();
+        this.loadMindMap();
+      }
+    });
   }
 
-  this.router.navigate([], {
-    relativeTo: this.route,
-    queryParams: { subject },
-    queryParamsHandling: 'merge'
-  });
-}
+  loadSubjects(): void {
+    this.isLoadingSubjects = true;
+    this.message = '';
+
+    this.http.get<Subject[]>('http://localhost:3000/api/subjects')
+      .subscribe({
+        next: data => {
+          this.subjects = data.map(subject => subject.name);
+          this.subjectsLoaded = true;
+          this.isLoadingSubjects = false;
+
+          const requestedSubject =
+            this.route.snapshot.queryParamMap.get('subject');
+
+          // Use the URL subject if valid; otherwise use the first subject.
+          const initialSubject =
+            requestedSubject && this.subjects.includes(requestedSubject)
+              ? requestedSubject
+              : this.subjects[0] || '';
+
+          if (initialSubject) {
+            this.subjectName = initialSubject;
+
+            // Keep the URL in sync with the selected subject.
+            if (requestedSubject !== initialSubject) {
+              this.router.navigate([], {
+                relativeTo: this.route,
+                queryParams: { subject: initialSubject },
+                queryParamsHandling: 'merge'
+              });
+            }
+
+            this.loadMindMap();
+          } else {
+            this.subjectName = '';
+            this.isLoading = false;
+            this.message = 'No subjects available. Add a subject first.';
+          }
+
+          this.cdr.detectChanges();
+        },
+        error: error => {
+          console.error('Error loading subjects:', error);
+          this.isLoadingSubjects = false;
+          this.isLoading = false;
+          this.message =
+            'Could not load subjects. Check that your backend is running.';
+          this.cdr.detectChanges();
+        }
+      });
+  }
+
+  private resetTopicSelection(): void {
+    this.expandedTopics = [];
+    this.selectedTopicTitle = '';
+    this.newTopicTitle = '';
+    this.newSubtopicTitle = '';
+  }
+
+  changeSubject(subject: string): void {
+    if (!this.subjects.includes(subject) || subject === this.subjectName) {
+      return;
+    }
+
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { subject },
+      queryParamsHandling: 'merge'
+    });
+  }
 
   get currentMindMap(): SubjectMindMap | undefined {
     return this.mindMapsBySubject[this.subjectName];
   }
 
-  // Load the saved map, or save the existing sample map on first visit.
+  // Load the saved map, or initialize a map for this subject.
   loadMindMap(): void {
+    if (!this.subjectName) {
+      this.isLoading = false;
+      return;
+    }
+
     this.isLoading = true;
     this.message = '';
 
     this.mindMapService.getAllMindMaps().subscribe({
-      next: (savedMaps) => {
+      next: savedMaps => {
         const savedMap = savedMaps.find(
           map => map.subject === this.subjectName
         );
@@ -209,13 +283,21 @@ changeSubject(subject: string): void {
 
           this.message = 'Mind map loaded from database.';
           this.finishLoading();
-        } else {
-          // Preserve and save the existing sample map.
-          this.saveCurrentMindMap(true);
+          return;
         }
-      },
 
-      error: (error) => {
+        // Preserve original sample maps. New subjects start with an empty map.
+        if (!this.mindMapsBySubject[this.subjectName]) {
+          this.mindMapsBySubject[this.subjectName] = {
+            subject: this.subjectName,
+            centralTopic: this.subjectName,
+            topics: []
+          };
+        }
+
+        this.saveCurrentMindMap(true);
+      },
+      error: error => {
         console.error('Error loading mind maps:', error);
         this.message =
           'Could not connect to the Mind Maps API. Check your backend.';
@@ -248,7 +330,7 @@ changeSubject(subject: string): void {
         topics: mindMap.topics
       }
     ).subscribe({
-      next: (savedMap) => {
+      next: savedMap => {
         this.mindMapsBySubject[this.subjectName] = {
           subject: savedMap.subject,
           centralTopic: savedMap.centralTopic,
@@ -261,7 +343,7 @@ changeSubject(subject: string): void {
         this.isSaving = false;
 
         if (isInitialSave) {
-          this.message = 'Initial mind map saved to database.';
+          this.message = 'Mind map saved to database.';
           this.isLoading = false;
         } else {
           this.message = 'Changes saved to database.';
@@ -269,8 +351,7 @@ changeSubject(subject: string): void {
 
         this.cdr.detectChanges();
       },
-
-      error: (error) => {
+      error: error => {
         console.error('Error saving mind map:', error);
         this.isSaving = false;
         this.message =
@@ -347,8 +428,7 @@ changeSubject(subject: string): void {
     const mindMap = this.currentMindMap;
 
     if (!mindMap || !title || !this.selectedTopicTitle) {
-      this.message =
-        'Enter a subtopic and select its parent topic.';
+      this.message = 'Enter a subtopic and select its parent topic.';
       return;
     }
 

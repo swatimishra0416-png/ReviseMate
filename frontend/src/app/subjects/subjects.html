@@ -1,23 +1,104 @@
 
 <h1>My Subjects</h1>
 
+<p>Manage your subjects and organize your revision.</p>
+
+<section class="subject-form">
+  <h2>Add a New Subject</h2>
+
+  <form (submit)="$event.preventDefault(); addSubject()">
+    <input
+      type="text"
+      name="newSubjectName"
+      [(ngModel)]="newSubjectName"
+      placeholder="Enter subject name (e.g. Economics)"
+      maxlength="100"
+      [disabled]="isSaving"
+      required
+    />
+
+    <button type="submit" [disabled]="isSaving">
+      {{ isSaving ? 'Saving...' : 'Add Subject' }}
+    </button>
+  </form>
+</section>
+
+@if (errorMessage) {
+  <p class="error-message" role="alert">{{ errorMessage }}</p>
+}
+
+@if (successMessage) {
+  <p class="success-message" role="status">{{ successMessage }}</p>
+}
+
 @if (isLoading) {
   <p>Loading subjects...</p>
-} @else if (errorMessage) {
-  <p>{{ errorMessage }}</p>
-  <button (click)="loadSubjects()">Try Again</button>
-} @else if (subjects.length === 0) {
-  <p>No subjects yet. Add a subject to get started!</p>
 } @else {
-  <div class="subjects">
-    @for (subject of subjects; track subject._id) {
-      <div class="subject-card">
-        <h2>{{ subject.name }}</h2>
+  @if (subjects.length === 0) {
+    <p>No subjects yet. Add a subject to get started!</p>
+  } @else {
+    <div class="subjects">
+      @for (subject of subjects; track subject._id) {
+        <div class="subject-card">
+          @if (editingSubjectId === subject._id) {
+            <h2>Rename Subject</h2>
 
-        <button (click)="startRevision(subject)">
-          Start Revision
-        </button>
-      </div>
-    }
-  </div>
+            <form (submit)="$event.preventDefault(); renameSubject(subject)">
+              <input
+                type="text"
+                name="editSubjectName"
+                [(ngModel)]="editSubjectName"
+                maxlength="100"
+                [disabled]="isSaving"
+                required
+              />
+
+              <div class="subject-actions">
+                <button type="submit" [disabled]="isSaving">
+                  {{ isSaving ? 'Saving...' : 'Save Name' }}
+                </button>
+
+                <button
+                  type="button"
+                  (click)="cancelRename()"
+                  [disabled]="isSaving"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          } @else {
+            <h2>{{ subject.name }}</h2>
+
+            <div class="subject-actions">
+              <button
+                type="button"
+                (click)="startRevision(subject)"
+                [disabled]="isSaving"
+              >
+                Start Revision
+              </button>
+
+              <button
+                type="button"
+                (click)="startRename(subject)"
+                [disabled]="isSaving"
+              >
+                Rename
+              </button>
+
+              <button
+                type="button"
+                class="delete-button"
+                (click)="deleteSubject(subject)"
+                [disabled]="isSaving"
+              >
+                Delete
+              </button>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  }
 }

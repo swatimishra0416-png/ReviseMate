@@ -1,11 +1,23 @@
 
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  ChangeDetectorRef
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { HttpClient } from '@angular/common/http';
+
 import {
   Flashcard,
   FlashcardsService
 } from '../services/flashcards.service';
+
+interface Subject {
+  _id: string;
+  name: string;
+  normalizedName: string;
+}
 
 @Component({
   selector: 'app-flashcards',
@@ -16,36 +28,65 @@ import {
 })
 export class Flashcards implements OnInit {
   flashcards: Flashcard[] = [];
+  subjects: string[] = [];
 
-  subjects = [
-    'Computer Networks',
-    'DBMS',
-    'Operating Systems',
-    'Data Structures'
-  ];
   updatingStatus = false;
 
-  selectedSubject = 'Computer Networks';
+  selectedSubject = '';
   currentIndex = 0;
   isFlipped = false;
 
   question = '';
   answer = '';
-  formSubject = 'Computer Networks';
+  formSubject = '';
 
   editingId: string | null = null;
   loading = false;
   saving = false;
+  isLoadingSubjects = true;
+
   errorMessage = '';
   successMessage = '';
 
   constructor(
     private flashcardsService: FlashcardsService,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private http: HttpClient
   ) {}
 
   ngOnInit(): void {
+    this.loadSubjects();
     this.loadFlashcards();
+  }
+
+  // Fetch subjects from the backend
+  loadSubjects(): void {
+    this.isLoadingSubjects = true;
+
+    this.http.get<Subject[]>('http://localhost:3000/api/subjects')
+      .subscribe({
+        next: (data) => {
+          this.subjects = data.map(subject => subject.name);
+
+          if (!this.subjects.includes(this.selectedSubject)) {
+            this.selectedSubject = this.subjects[0] || '';
+          }
+
+          if (!this.subjects.includes(this.formSubject)) {
+            this.formSubject = this.selectedSubject;
+          }
+
+          this.isLoadingSubjects = false;
+          this.cdr.detectChanges();
+        },
+        error: (error) => {
+          console.error('Error loading subjects:', error);
+          this.errorMessage =
+            'Could not load subjects. Check that your backend is running.';
+          this.isLoadingSubjects = false;
+          this.cdr.detectChanges();
+        }
+      });
   }
 
   get filteredFlashcards(): Flashcard[] {
@@ -84,6 +125,7 @@ export class Flashcards implements OnInit {
     this.selectedSubject = subject;
     this.currentIndex = 0;
     this.isFlipped = false;
+    this.formSubject = subject;
     this.clearMessages();
   }
 
@@ -113,6 +155,15 @@ export class Flashcards implements OnInit {
 
     if (!trimmedQuestion || !trimmedAnswer) {
       this.errorMessage = 'Please enter both a question and an answer.';
+      return;
+    }
+
+    if (
+      this.isLoadingSubjects ||
+      this.subjects.length === 0 ||
+      !this.subjects.includes(this.formSubject)
+    ) {
+      this.errorMessage = 'Please select a valid subject first.';
       return;
     }
 
@@ -150,6 +201,7 @@ export class Flashcards implements OnInit {
 
         this.selectedSubject = savedCard.subject;
         this.formSubject = savedCard.subject;
+
         this.currentIndex = this.filteredFlashcards.findIndex(
           card => card._id === savedCard._id
         );
@@ -163,6 +215,7 @@ export class Flashcards implements OnInit {
         this.answer = '';
         this.editingId = null;
         this.saving = false;
+
         this.cdr.detectChanges();
       },
       error: error => {
@@ -235,57 +288,59 @@ export class Flashcards implements OnInit {
     this.errorMessage = '';
     this.successMessage = '';
   }
+
   get knownCount(): number {
-  return this.filteredFlashcards.filter(
-    card => card.status === 'known'
-  ).length;
-}
-
-get progressPercentage(): number {
-  const total = this.filteredFlashcards.length;
-
-  if (total === 0) {
-    return 0;
+    return this.filteredFlashcards.filter(
+      card => card.status === 'known'
+    ).length;
   }
 
-  return Math.round((this.knownCount / total) * 100);
-}
-markStatus(status: 'needs-revision' | 'known'): void {
-  const card = this.currentCard;
+  get progressPercentage(): number {
+    const total = this.filteredFlashcards.length;
 
-  if (!card?._id || this.updatingStatus) {
-    return;
-  }
-
-  this.errorMessage = '';
-  this.successMessage = '';
-  this.updatingStatus = true;
-
-  this.flashcardsService.updateStatus(card._id, status).subscribe({
-    next: updatedCard => {
-      const index = this.flashcards.findIndex(
-        item => item._id === updatedCard._id
-      );
-
-      if (index !== -1) {
-        this.flashcards[index] = updatedCard;
-      }
-
-      this.successMessage =
-        status === 'known'
-          ? 'Marked as known!'
-          : 'Added back to your revision list.';
-
-      this.updatingStatus = false;
-      this.cdr.detectChanges();
-    },
-    error: error => {
-      console.error('Error updating revision status:', error);
-      this.errorMessage =
-        error.error?.message || 'Could not save revision progress.';
-      this.updatingStatus = false;
-      this.cdr.detectChanges();
+    if (total === 0) {
+      return 0;
     }
-  });
-}
+
+    return Math.round((this.knownCount / total) * 100);
+  }
+
+  markStatus(status: 'needs-revision' | 'known'): void {
+    const card = this.currentCard;
+
+    if (!card?._id || this.updatingStatus) {
+      return;
+    }
+
+    this.errorMessage = '';
+    this.successMessage = '';
+    this.updatingStatus = true;
+
+    this.flashcardsService.updateStatus(card._id, status).subscribe({
+      next: updatedCard => {
+        const index = this.flashcards.findIndex(
+          item => item._id === updatedCard._id
+        );
+
+        if (index !== -1) {
+          this.flashcards[index] = updatedCard;
+        }
+
+        this.successMessage =
+          status === 'known'
+            ? 'Marked as known!'
+            : 'Added back to your revision list.';
+
+        this.updatingStatus = false;
+        this.cdr.detectChanges();
+      },
+      error: error => {
+        console.error('Error updating revision status:', error);
+        this.errorMessage =
+          error.error?.message || 'Could not save revision progress.';
+        this.updatingStatus = false;
+        this.cdr.detectChanges();
+      }
+    });
+  }
 }
